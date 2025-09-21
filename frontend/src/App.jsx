@@ -1,15 +1,18 @@
 import './App.css'
-import Form from './Form'
-
+import { Routes, Route } from 'react-router-dom';
+import Home from './Pages/Home';
+import Screener from './Pages/Screener';
+import Summarizer from './Pages/Summarizer';
 function App() {
+return (
 
-  return <>
-    
-      <h1 className="text-3xl font-bold underline">
-      Hello world!
-    </h1>
-      <Form/>
-  </>
+  <Routes>
+  <Route path="/" element={<Home />} />
+  <Route path="/screener" element={<Screener />} /> 
+  <Route path="/Summarizer" element={<Summarizer />} /> 
+  </Routes>
+)
+
 }
 
 export default App
