@@ -2,13 +2,23 @@ import fs from "fs";
 import path from "path";
 import { summarizePDFwithGemini } from "../services/aiService.js";
 import { markdownToPDFBuffer } from "../services/pdfService.js";
-import { saveFile, getAllFiles, getFileById } from "../repositories/fileRepository.js";
+import { saveFile, getAllFiles, getFileById, getFileByName } from "../repositories/fileRepository.js";
 import { uploadDir } from "../middlewares/uploadMiddleware.js";
 
 export const uploadFile = async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ message: "❌ No file uploaded" });
     console.log("✅ File received:", req.file.originalname);
+
+const existingFile = await getFileByName(req.file.originalname);
+console.log(req.file.filename);
+console.log(existingFile);
+if (existingFile) {
+  console.log("⚠️ File already exists in DB:", req.file.filename);
+  return res.status(200).json({
+    message: "⚠️ File already exists, skipping processing",
+  });
+}
 
     const summary = await summarizePDFwithGemini(uploadDir, req.file.filename);
     const pdfBuffer = await markdownToPDFBuffer(summary);
