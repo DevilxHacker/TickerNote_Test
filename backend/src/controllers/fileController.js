@@ -1,17 +1,18 @@
-import fs from "fs";
-import path from "path";
 import { summarizePDFwithGemini } from "../services/aiService.js";
 import { markdownToPDFBuffer } from "../services/pdfService.js";
 import { saveFile, getAllFiles, getFileById, getFileByName } from "../repositories/fileRepository.js";
-import { uploadDir } from "../middlewares/uploadMiddleware.js";
+
 
 export const uploadFile = async (req, res) => {
   try {
-    if (!req.file) return res.status(400).json({ message: "❌ No file uploaded" });
+    const docBuffer = req.file.buffer; // This is the in-memory Buffer!
+    const mimeType = req.file.mimetype; // 'application/pdf'
+    if (!docBuffer || mimeType !== 'application/pdf') {
+      return res.status(400).send('Please upload a valid PDF file.');
+    }
     console.log("✅ File received:", req.file.originalname);
 
 const existingFile = await getFileByName(req.file.originalname);
-console.log(req.file.filename);
 console.log(existingFile);
 if (existingFile) {
   console.log("⚠️ File already exists in DB:", req.file.filename);
@@ -20,11 +21,10 @@ if (existingFile) {
   });
 }
 
-    const summary = await summarizePDFwithGemini(uploadDir, req.file.filename);
+    const summary = await summarizePDFwithGemini( docBuffer, mimeType);
     const pdfBuffer = await markdownToPDFBuffer(summary);
 
     const summaryFilename = `summary-${req.file.filename}.pdf`;
-    fs.writeFileSync(path.join(uploadDir, summaryFilename), pdfBuffer);
         console.log("✅ Summary PDF saved locally:", summaryFilename);
 
     const savedFile = await saveFile({
@@ -82,3 +82,4 @@ export const downloadPDF = async (req, res) => {
     res.status(500).json({ message: "❌ Error downloading PDF", error: err.message });
   }
 };
+               

@@ -1,11 +1,20 @@
 import { GoogleGenAI, createUserContent, createPartFromUri } from "@google/genai";
-import path from "path";
+import { Blob } from 'buffer';
 import {GEMINI_API_KEY} from "../config/serverConfig.js"
 const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
 
-export async function summarizePDFwithGemini(uploadDir, filename) {
+export async function summarizePDFwithGemini( buffer, mimeType) {
   try {
-    const myfile = await ai.files.upload({ file: path.join(uploadDir, filename) });
+    
+      const fileBlob = new Blob([buffer], { type: mimeType });
+        console.log(`Uploading file of size ${buffer.length} bytes...`)
+    const myfile = await ai.files.upload({
+   file: fileBlob,
+    config: {
+      mimeType: mimeType,
+    },
+  config: { mimeType: "application/pdf" }, // required
+  });
     console.log("✅ File uploaded to Gemini API");
 
     const result = await ai.models.generateContent({
