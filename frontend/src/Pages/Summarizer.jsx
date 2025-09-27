@@ -3,7 +3,10 @@ import axios from "axios";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
 
-const API_BASE = "http://localhost:3000/file";
+const API_BASE = window.location.hostname === "localhost"
+  ? "http://localhost:3000/file"
+  : "https://tickernote-test.onrender.com/file";
+
 
 function SummarizerLayout() {
   const [files, setFiles] = useState([]);
@@ -109,24 +112,15 @@ function SummarizerLayout() {
   }, [selectedFile]);
 
   // Download PDF
-const downloadPDF = async () => {
+const downloadPDF = () => {
   try {
     const url = selectedFile?.url;
-    if (!url) return alert("No download URL available");
-
     const link = document.createElement("a");
-    link.href = url;
-    link.target = "_blank";
-
-    document.body.appendChild(link);
-    link.click();
-
-    // Remove the link after a short delay to avoid "Node cannot be found" error
-    setTimeout(() => {
-      if (link.parentNode) {
-        document.body.removeChild(link);
-      }
-    }, 100);
+      link.href = url;
+      link.setAttribute("download", selectedFile?.originalName); // Suggests filename
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
   } catch (err) {
     console.error("❌ Error downloading PDF:", err);
     alert("Failed to download PDF");
