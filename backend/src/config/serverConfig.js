@@ -4,4 +4,7 @@ export const GEMINI_API_KEY=process.env.Gemini_API_KEY;
 export const PORT = process.env.PORT || 5000;
 export const CLIENT_URI = process.env.CLIENT_URI;
 export const MONGO_URI = process.env.MONGO_URI;
-
+export const BUCKET_NAME=process.env.BUCKET_NAME;
+export const BUCKET_REGION=process.env.BUCKET_REGION;
+export const ACCESS_KEY=process.env.ACCESS_KEY;
+export const SECRET_KEY=process.env.SECRET_KEY;

@@ -1,11 +1,30 @@
 import { File } from "../schema/fileSchema.js";
+import {getPresignedUrl} from "../services/s3Service.js"
 
 export const saveFile = async (fileData) => {
   const newFile = new File(fileData);
   return await newFile.save();
 };
 
-export const getAllFiles = async () => await File.find();
+// Only return data, no res
+export const getAllFiles = async () => {
+  const files = await File.find().sort({ createdAt: -1 });
+
+  const filesWithUrls = await Promise.all(
+    files.map(async (file) => {
+      const url = await getPresignedUrl(file.s3Key, 3600); // 1 hour
+      return { 
+        id: file._id,
+        originalName: file.originalName,
+        result: file.result || "",
+        url,
+      };
+    })
+  );
+
+  return filesWithUrls;
+};
+
 
 export const getFileById = async (id) => await File.findById(id);
 

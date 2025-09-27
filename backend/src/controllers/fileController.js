@@ -1,9 +1,10 @@
 import { summarizePDFwithGemini } from "../services/aiService.js";
 import { markdownToPDFBuffer } from "../services/pdfService.js";
 import { saveFile, getAllFiles, getFileById, getFileByName } from "../repositories/fileRepository.js";
-
+import {uploadBufferToS3} from "../services/s3Service.js"
 
 export const uploadFile = async (req, res) => {
+  
   try {
     const docBuffer = req.file.buffer; // This is the in-memory Buffer!
     const mimeType = req.file.mimetype; // 'application/pdf'
@@ -21,19 +22,20 @@ if (existingFile) {
   });
 }
 
-    const summary = await summarizePDFwithGemini( docBuffer, mimeType);
-    const pdfBuffer = await markdownToPDFBuffer(summary);
-
-    const summaryFilename = `summary-${req.file.filename}.pdf`;
-        console.log("✅ Summary PDF saved locally:", summaryFilename);
+const summary = await summarizePDFwithGemini( docBuffer, mimeType);
+const pdfBuffer = await markdownToPDFBuffer(summary);
+const summaryFilename = `summary-${req.file.originalname}.pdf`;
+const s3lenght = await uploadBufferToS3(pdfBuffer, summaryFilename);
+const s3lengthtToKb= (s3lenght / 1024).toFixed(2);
+ console.log("✅ PDF uploaded to S3:", s3lengthtToKb);
 
     const savedFile = await saveFile({
-      filename: req.file.filename,
-      originalname: req.file.originalname,
-      summaryPDF: Buffer.from(pdfBuffer),
-      summaryPDFName: summaryFilename,
+      originalName: req.file.originalname,
+      s3Key: summaryFilename,
+      size: s3lengthtToKb,    // Multer-S3 provides this
+      result: summary,
     });
-   console.log("✅ File saved to MongoDB");
+   console.log("✅ Meta Data saved to MongoDB");
     res.json({ message: "✅ File uploaded and summarized", file: savedFile, summaryFile: `/uploads/${summaryFilename}` });
   } catch (err) {
     console.error("❌ Error processing file:", err.message);
@@ -47,21 +49,6 @@ export const fetchFiles = async (req, res) => {
     res.json(files || []);
   } catch (err) {
     res.status(500).json({ message: "❌ Error fetching files", error: err.message });
-  }
-};
-
-export const viewPDF = async (req, res) => {
-  try {
-    const file = await getFileById(req.params.id);
-    if (!file || !file.summaryPDF) return res.status(404).json({ message: "❌ PDF not found" });
-
-    res.set({ "Content-Type": "application/pdf" });
-    if (req.query.download === "true") {
-      res.set("Content-Disposition", `attachment; filename="${file.summaryPDFName}"`);
-    }
-    res.send(file.summaryPDF);
-  } catch (err) {
-    res.status(500).json({ message: "❌ Error serving PDF", error: err.message });
   }
 };
 
@@ -83,3 +70,17 @@ export const downloadPDF = async (req, res) => {
   }
 };
                
+export const viewPDF = async (req, res) => {
+  try {
+    const file = await getFileById(req.params.id);
+    if (!file || !file.summaryPDF) return res.status(404).json({ message: "❌ PDF not found" });
+
+    res.set({ "Content-Type": "application/pdf" });
+    if (req.query.download === "true") {
+      res.set("Content-Disposition", `attachment; filename="${file.summaryPDFName}"`);
+    }
+    res.send(file.summaryPDF);
+  } catch (err) {
+    res.status(500).json({ message: "❌ Error serving PDF", error: err.message });
+  }
+};
