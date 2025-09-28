@@ -115,17 +115,23 @@ function SummarizerLayout() {
 const downloadPDF = () => {
   try {
     const url = selectedFile?.url;
+    if (!url) {
+      alert("File URL is missing or expired. Please try again.");
+      return;
+    }
+
     const link = document.createElement("a");
-      link.href = url;
-      link.setAttribute("download", selectedFile?.originalName); // Suggests filename
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
+    link.href = url;
+    link.download = selectedFile?.originalName || "file.pdf"; // fallback
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link); // safer cleanup
   } catch (err) {
     console.error("❌ Error downloading PDF:", err);
     alert("Failed to download PDF");
   }
 };
+
 
 
 
