@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
+     "postinstall": "PUPPETEER_PRODUCT=chrome npm install puppeteer",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "type": "module",
