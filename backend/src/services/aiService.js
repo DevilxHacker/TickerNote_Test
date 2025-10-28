@@ -13,28 +13,33 @@ export async function summarizePDFwithGemini( buffer, mimeType) {
     config: {
       mimeType: mimeType,
     },
-  config: { mimeType: "application/pdf" }, // required
+  config: { mimeType: "application/pdf",
+      temperature: 0.1,
+      maxOutputTokens: 20000,
+   }, // required
   });
     console.log("✅ File uploaded to Gemini API");
 
     const result = await ai.models.generateContent({
       model: "gemini-2.5-flash-lite",
+    
       contents: createUserContent([
         createPartFromUri(myfile.uri, myfile.mimeType),
         "\n\n",
-        `You are an automated financial analyst. You will receive the raw text of an Annual Report of a publicly listed Indian company. Your task is to generate a neutral, factual, structured summary in Markdown.
+        `You are an automated experienced equity research analyst. You will receive the pdf of an Annual Report of a publicly listed Indian company. Your task is to generate a neutral, factual, structured summary in Markdown and your main focus should be to give the investors clarity and deep understanding about the company and its business for making rational investment decisions.
 
-The summary must follow the structure below, with each section treated as one page (max length ~12 pages). Use only the information from the report. If something is not available, write “Not Disclosed in Report.”
-
+The summary must strictly follow the structure below, with each section treated as one page (max length ~ 15 pages). Use only the information from the report. If something is not available, write “Not Disclosed in Report.” Keep the report in structured format no unstructured format in the results would be accepted.
 The tone must be neutral, simple, and explanatory — avoid promotional, judgmental, or advisory language.
 
- Business Snapshot & Model
+Business Snapshot & Model
 
-Briefly describe the company’s core business in 1–2 sentences.
+Briefly describe the company’s core business in 5-10 sentences.
 
-List its main products, services, and customer segments.
+List its main products, services, and customer segments (Show it clearly in structured table format).
 
-Revenue breakdown by business segment and geography (if disclosed).
+Give in detail the value chain of the product from making till distribution (if given in the original report)
+
+Revenue breakdown by business segment and geography
 
 Core revenue streams (product sales, services, contracts, subscriptions).
 
@@ -42,7 +47,17 @@ Key raw materials, suppliers, distribution channels, major cost drivers.
 
 Any structural changes during the year (mergers, acquisitions, divestments).
 
- Industry & Macro Overview
+Chairman/Managing Director’s Letter:
+
+Summarize the overall tone (e.g., Optimistic, Cautious, Confident). Also include the words said by the chairman or MD (Give the spoken words in quotes).
+
+List the key achievements highlighted for the past year.
+
+Extract direct quotes or summaries of the company's stated strategic priorities for the upcoming year.
+
+Identify the primary challenges or headwinds mentioned by the management.
+
+Industry & Macro Overview
 
 Summarize industry environment and demand drivers.
 
@@ -50,9 +65,11 @@ Key challenges (e.g., raw material prices, regulation, competition).
 
 Company’s relative positioning in the industry (only factual disclosures).
 
- Consolidated Financial Highlights 
+Financial Statement Analysis (Consolidated)
 
-Present a  table with columns as years and rows and the no. of years as given in the original report :
+Under this if the company does not have any subsidiaries mention that the company has no subsidiaries and the financials show only of the company.
+
+Present a table with columns as years and rows and the no. of years as given in the original report (strictly show the years which is given in the original report)
 
 Revenue from Operations
 
@@ -73,24 +90,28 @@ ROCE %
 Debt-to-Equity Ratio
 
 Trends Summary:
-3–4 neutral sentences explaining main revenue/margin/debt drivers.
 
- Standalone Financial Highlights 
+3-4 neutral sentences explaining main revenue/margin/debt drivers.
 
-Use the same table format as Page 3, but for standalone results.
+Financial Statement Analysis (Standalone)
+
+Under this if the company does not have any subsidiaries mention that the company has no subsidiaries and the financials show only of the company.
+
+Use the same table format as Page 3, but for standalone results (strictly show the years which is given in the original report).
 
 Trends Summary:
+
 3–4 neutral sentences comparing standalone performance to consolidated.
 
-Page 5 – Segment & Geography Performance
+Segment & Geography Performance
 
-Create tables with:
+Create tables with Charts for each:
 
 Segment-wise: Revenue, EBIT/EBITDA, Margins %, % of total revenue.
 
 Geography-wise: Revenue by region, % of total revenue.
 
- Shareholding Pattern
+Shareholding Pattern
 
 Promoter holding %
 
@@ -100,7 +121,7 @@ Retail & public holding %
 
 Any major changes during the year.
 
- Capital Allocation, Dividend & Cash Flow
+Capital Allocation, Dividend & Cash Flow
 
 Capex during the year and planned capex (₹, if disclosed).
 
@@ -110,7 +131,7 @@ Equity actions (buybacks, issuances, allotments).
 
 Debt levels (gross debt, net debt, debt/equity movement).
 
-Cash flow summary: CFO, CFI, CFF (latest year).
+Cash flow summary: CFO, CFI, CFF (as shown in original attached report).
 
 Simple check: whether CFO > Net Profit or CFO < Net Profit.
 
@@ -120,31 +141,39 @@ How cash was generated and deployed.
 
 Any notable change in debt or equity.
 
- Governance & Management Snapshot
+Management Discussion & Analysis Snapshot
+
+Operational Performance Review: Summarize management's commentary on what drove operational performance beyond the financials (e.g., volume growth, price increases, new product launches, efficiency programs).
+
+Key Performance Indicators (KPIs): List any non-financial KPIs discussed (e.g., plant capacity utilization, customer acquisition numbers, store expansions, user engagement metrics).
+
+Demand & Outlook Commentary: What does management say about the demand environment, order book, and their outlook for the industry and the company's position within it?
+
+Strategic Initiatives: Detail any new projects, R&D efforts, or market expansion plans discussed.
+
+Governance & Management Snapshot
 
 Total number of directors and number of independent directors.
 
-Key leadership: Chairman, CEO/MD, CFO.
+Key leadership: Chairman, CEO/MD, CFO. (Show them in table format with their Full name, Position, Education, Experience in years as shown in report if given in the original report) if their education, experience is not given in the original report take the reference from google to find out and then give the education and experience.
 
 Key appointments or resignations.
 
-Promoter shareholding and changes (if already not captured earlier).
-
 Primary board committees (Audit, NRC, Risk, CSR).
 
- Auditor’s Report
+Auditor’s Report
 
 Name of auditing firm.
 
 Audit opinion (Unqualified, Qualified, Adverse, Disclaimer).
 
-If Qualified/Modified, give factual reason.
+If Qualified/Modified, give factual reason in detail.
 
 Any Emphasis of Matter paragraphs (summarize factually).
 
- Risks & Other Material Disclosures
+Risks & Other Material Disclosures
 
-Risk Factors (categorized):
+Risk Factors (categorized with detail and with clarity to help in decision making):
 
 Business risks
 
@@ -162,7 +191,7 @@ Regulatory filings or SEBI/BSE actions.
 
 Share pledging (if any).
 
- ESG & CSR Highlights
+ESG & CSR Highlights
 
 CSR spend (₹ and % of average profits).
 
@@ -172,18 +201,13 @@ Environmental initiatives (renewable use, emissions reduction, etc.).
 
 Governance/ethics disclosures (if mentioned).
 
-Business Recap (5 points):
+Do not repeat explanations. 
+- Each section should be explained only once. 
+- Maintain the order of sections exactly as given.
 
-What does the company do?
-
-Where does most of its revenue come from (by segment or geography)?
-
-Where is the company spending or investing its money?
-
-What are the key risks mentioned in the report?
-
-What are the company’s stated plans for the future`
+temperature = 0.1`
       ]),
+      
     });
     console.log("✅ Summary generated by Gemini",result.text);
     return result.text;
