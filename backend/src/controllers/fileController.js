@@ -22,7 +22,7 @@ if (existingFile) {
   });
 }
 
-const summary = await summarizePDFwithGemini( docBuffer, mimeType);
+const summary = await summarizePDFwithGemini( docBuffer);
 const pdfBuffer = await markdownToPDFBuffer(summary);
 const summaryFilename = `summary-${req.file.originalname}.pdf`;
 const s3lenght = await uploadBufferToS3(pdfBuffer, summaryFilename);
