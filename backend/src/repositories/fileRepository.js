@@ -6,17 +6,26 @@ export const saveFile = async (fileData) => {
   return await newFile.save();
 };
 
-// Only return data, no res
-export const getAllFiles = async () => {
-  const files = await File.find().sort({ createdAt: -1 });
+
+export const getAllFiles = async (userId) => {
+  const files = await File.find({ user: userId }).sort({ createdAt: -1 });
 
   const filesWithUrls = await Promise.all(
     files.map(async (file) => {
-      const url = await getPresignedUrl(file.s3Key, 3600); // 1 hour
-      return { 
+      let url = "";
+      try {
+        url = await getPresignedUrl(file.s3Key, 3600);
+      } catch (err) {
+        console.error("Presigned URL error for", file.s3Key, err.message); 
+        url = "";
+      }
+
+      return {
         id: file._id,
         originalName: file.originalName,
         result: file.result || "",
+        size: file.size,
+        uploadedAt: file.uploadedAt,
         url,
       };
     })
@@ -28,11 +37,11 @@ export const getAllFiles = async () => {
 
 export const getFileById = async (id) => await File.findById(id);
 
-export const getFileByName = async (originalname) => {
+export const getFileByName = async (originalName) => {
   try {
-    return await File.findOne({ originalname });
+    return await File.findOne({ originalName }); 
   } catch (err) {
-    console.error("❌ Error fetching file by name:", err.message);
+    console.error("Error fetching file by name:", err.message);
     throw err;
   }
-};
+}

@@ -1,38 +1,32 @@
-import {BUCKET_NAME, BUCKET_REGION, ACCESS_KEY, SECRET_KEY} from "../config/serverConfig.js"
-import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { BUCKET_NAME, SUPABASE_URL, SUPABASE_SERVICE_KEY } from "../config/serverConfig.js";
+import { createClient } from "@supabase/supabase-js";
 
-const s3 = new S3Client({
-  region: BUCKET_REGION,
-  credentials: {
-    accessKeyId: ACCESS_KEY,
-    secretAccessKey: SECRET_KEY,
-  },
-});
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
 export async function uploadBufferToS3(buffer, filename) {
-  const params = {
-    Bucket: BUCKET_NAME,
-    Key: filename,                // e.g., "summary-report.pdf"
-    Body: buffer,                 // your pdfBuffer
-    ContentType: "application/pdf",
-  };
-
   try {
-    await s3.send(new PutObjectCommand(params));
-    // return `https://${BUCKET_NAME}.s3.${BUCKET_REGION}.amazonaws.com/${filename}`;
-    return buffer.length; 
+    const { error } = await supabase.storage
+      .from(BUCKET_NAME)
+      .upload(filename, buffer, {
+        contentType: "application/pdf",
+        upsert: true,               
+      });
+
+    if (error) throw error;
+
+    return buffer.length;         
   } catch (err) {
-    console.error("❌ S3 Upload Error:", err);
+    console.error("Supabase Upload Error:", err);
     throw err;
   }
 }
 
-
 export const getPresignedUrl = async (s3Key, expiresIn = 3600) => {
-  const command = new GetObjectCommand({
-    Bucket: BUCKET_NAME,
-    Key: s3Key,
-  });
-  return await getSignedUrl(s3, command, { expiresIn });
+  const { data, error } = await supabase.storage
+    .from(BUCKET_NAME)
+    .createSignedUrl(s3Key, expiresIn);
+
+  if (error) throw error;
+
+  return data.signedUrl;         
 };

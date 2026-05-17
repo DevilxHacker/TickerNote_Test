@@ -6,7 +6,7 @@ import fileRouter from "./routers/fileRouter.js";
 import screenerRouter from "./routers/screenerRouter.js"
 import errorHandler from "./middlewares/errorHandler.js";
 import path from "path";
-
+import userRoutes from '../src/routers/userRouter.js'
 connectDB();
 
 const app = express();
@@ -22,7 +22,7 @@ app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 app.use("/file", fileRouter);
 app.use("/screener", screenerRouter)
-
+app.use('/api/users', userRoutes);
 app.use(errorHandler);
 
 app.get("/", (req, res) => res.send("Backend running"));

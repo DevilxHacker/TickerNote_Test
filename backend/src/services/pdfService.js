@@ -1,21 +1,188 @@
+
 import fs from "fs";
 import puppeteer from "puppeteer";
+import { ChartJSNodeCanvas } from "chartjs-node-canvas";
 import { markdownToHTML } from "../utilities/markdownUtil.js";
 
 /**
- * Convert Markdown text into PDF buffer with header, footer, and watermark
+ * Convert Markdown text into PDF buffer with charts and full styling.
  */
 export async function markdownToPDFBuffer(markdownText) {
   try {
-  // Load logos
-  const logoBase64 = fs.readFileSync("logo.svg", "base64");
-  const logoFooter = fs.readFileSync("footer-logo.svg", "base64");
+    // === 1️⃣ Chart configuration ===
+    const chartSections = {
+      "Revenue Breakdown (Consolidated, in ₹ Cr)": { type: "bar" },
+      "Financial Statement Analysis (Consolidated)": { type: "bar" },
+      "Financial Statement Analysis (Standalone)": { type: "bar" },
+      "Shareholding Pattern": { type: "pie" },
+      "Capital Allocation, Dividend & Cash Flow": { type: "bar" },
+    };
 
-  // Convert Markdown → HTML
-  const htmlContent = markdownToHTML(markdownText);
+    const chartJSNodeCanvas = new ChartJSNodeCanvas({ width: 800, height: 400 });
 
-  // Full HTML template (with last page)
-  const html = `
+    // Parse Markdown Table
+    function parseMarkdownTable(markdownTable) {
+      if (!markdownTable || !markdownTable.includes("|")) return { headers: [], rows: [] };
+
+      const lines = markdownTable
+        .trim()
+        .split("\n")
+        .filter(l => l.trim() && l.includes("|"));
+
+      if (lines.length < 2) return { headers: [], rows: [] };
+
+      const headers = lines[0]
+        .split("|")
+        .slice(1, -1)
+        .map(h => h.trim())
+        .filter(Boolean);
+
+      const rows = lines
+        .slice(2)
+        .map(line =>
+          line
+            .split("|")
+            .slice(1, -1)
+            .map(cell => cell.trim())
+            .filter(Boolean)
+        )
+        .filter(r => r.length);
+
+      return { headers, rows };
+    }
+
+    // Generate chart image (returns base64)
+    async function generateChartImage(chartType, chartData) {
+      const config = {
+        type: chartType,
+        data: chartData,
+        options: {
+          responsive: false,
+          plugins: {
+            legend: { position: "bottom" },
+            title: { display: false },
+          },
+          scales: chartType === "bar" ? { y: { beginAtZero: true } } : undefined,
+        },
+      };
+      const buffer = await chartJSNodeCanvas.renderToBuffer(config);
+      return buffer.toString("base64");
+    }
+
+    // === 2️⃣ Logic for each section ===
+    async function generateSectionCharts(section, headers, rows) {
+      if (!headers.length || !rows.length) return [];
+
+      // 🟦 Revenue Breakdown (Consolidated, in ₹ Cr)
+      if (section.includes("Revenue Breakdown")) {
+        const years = headers.slice(1).filter(h => /\d{4}/.test(h));
+        const datasets = rows.map(r => ({
+          label: r[0],
+          data: r.slice(1, years.length + 1).map(v => parseFloat(v.replace(/,/g, "")) || 0),
+        }));
+        const chartData = { labels: years, datasets };
+        return [await generateChartImage("bar", chartData)];
+      }
+
+      // 🟩 Financial Statement Analysis (Consolidated / Standalone)
+      if (section.includes("Financial Statement Analysis")) {
+        const years = headers.filter(h => /\d{4}/.test(h) && !h.includes("%"));
+        const charts = [];
+
+        for (const row of rows) {
+          const numericValues = row.slice(1, years.length + 1).map(v => {
+            const val = parseFloat(v.replace(/,/g, ""));
+            return isNaN(val) ? 0 : val;
+          });
+
+          const chartData = {
+            labels: years,
+            datasets: [
+              {
+                label: row[0],
+                data: numericValues,
+              },
+            ],
+          };
+          charts.push(await generateChartImage("bar", chartData));
+        }
+        return charts;
+      }
+
+      // 🟨 Shareholding Pattern (Pie)
+      if (section.includes("Shareholding Pattern")) {
+        const labels = rows.map(r => r[0]);
+        const data = rows.map(r => parseFloat(r[1].replace("%", "")) || 0);
+        const chartData = {
+          labels,
+          datasets: [{ data }],
+        };
+        return [await generateChartImage("pie", chartData)];
+      }
+
+      // 🟧 Capital Allocation, Dividend & Cash Flow
+      if (section.includes("Capital Allocation")) {
+        const years = headers.filter(h => /\d{4}/.test(h));
+        const selected = ["Cash Flow from Operations (CFO)", "Cash Flow from Investing (CFI)", "Cash Flow from Financing (CFF)"];
+        const filteredRows = rows.filter(r => selected.includes(r[0]));
+
+        const datasets = filteredRows.map(row => ({
+          label: row[0],
+          data: row.slice(1, years.length + 1).map(v => parseFloat(v.replace(/,/g, "")) || 0),
+        }));
+
+        const chartData = { labels: years, datasets };
+        return [await generateChartImage("bar", chartData)];
+      }
+
+      return [];
+    }
+
+    // Async replace helper
+    async function replaceAsync(str, regex, asyncFn) {
+      const matches = [];
+      str.replace(regex, (match, ...args) => {
+        matches.push(asyncFn(match, ...args));
+        return match;
+      });
+      const results = await Promise.all(matches);
+      return str.replace(regex, () => results.shift());
+    }
+
+    // === 3️⃣ Inject charts dynamically ===
+    for (const section in chartSections) {
+      const sectionRegex = new RegExp(
+        `(?:^|\\n)(?:##|###)\\s*${section}[\\s\\S]*?(\\|.*?\\|[\\s\\S]*?)(?=(?:\\n##|\\n###|$))`,
+        "gi"
+      );
+
+      markdownText = await replaceAsync(markdownText, sectionRegex, async (match, tableMarkdown) => {
+        const { headers, rows } = parseMarkdownTable(tableMarkdown);
+        if (!headers.length || !rows.length) return match;
+
+        const charts = await generateSectionCharts(section, headers, rows);
+        if (!charts.length) return match;
+
+        const imgTags = charts
+          .map(
+            base64 =>
+              `<img src="data:image/png;base64,${base64}" alt="${section} Chart" style="margin-top:15px;max-width:100%;border:1px solid #eee;border-radius:8px;"/>`
+          )
+          .join("\n");
+
+        return `${match}\n\n${imgTags}\n`;
+      });
+    }
+
+    // === 4️⃣ Convert Markdown → HTML ===
+    const htmlContent = markdownToHTML(markdownText);
+
+    // === 5️⃣ Load logos ===
+    const logoBase64 = fs.readFileSync("logo.svg", "base64");
+    const logoFooter = fs.readFileSync("footer-logo.svg", "base64");
+
+    // === 6️⃣ Full HTML Template ===
+    const html = `
 <html>
   <head>
     <title>Summary Report</title>
@@ -26,40 +193,12 @@ export async function markdownToPDFBuffer(markdownText) {
         line-height: 1.6;
         color: #222;
       }
-
-      h1, h2, h3 {
-        color: #333;
-      }
-
-      table { 
-        width: 100%; 
-        border-collapse: collapse; 
-        margin-top: 20px; 
-      }
-
-      th, td { 
-        border: 1px solid #ddd; 
-        padding: 8px; 
-        text-align: left; 
-      }
-
-      th { 
-        background-color: #f2f2f2; 
-      }
-
-      .header {
-        text-align: left;
-        border-bottom: 2px solid #ddd;
-        padding-bottom: 10px;
-        margin-bottom: 40px;
-      }
-
-      .header img {
-        width: 180px;
-        height: auto;
-      }
-
-      /* Watermark */
+      h1, h2, h3 { color: #333; }
+      table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+      th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+      th { background-color: #f2f2f2; }
+      .header { text-align: left; border-bottom: 2px solid #ddd; padding-bottom: 10px; margin-bottom: 40px; }
+      .header img { width: 180px; height: auto; }
       body::before {
         content: "Tickernote";
         position: fixed;
@@ -72,203 +211,68 @@ export async function markdownToPDFBuffer(markdownText) {
         white-space: nowrap;
         pointer-events: none;
       }
-
-      /* Last Page */
-      .page-break {
-  page-break-before: always;
-  margin: 0;
-  padding: 0;
-}
-
-.last-page {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  text-align: justify;
-  background: linear-gradient(135deg, #f8f9fb, #f2f4f7);
-  color: #333;
-  padding: 60px 80px;
-  box-sizing: border-box;
-  min-height: 100vh;
-  page-break-after: avoid;
-}
-
-      .last-page img {
-        width: 140px;
-        margin-bottom: 20px;
+      .page-break { page-break-before: always; }
+      .last-page {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        background: linear-gradient(135deg, #f8f9fb, #f2f4f7);
+        color: #333;
+        padding: 60px 80px;
+        min-height: 100vh;
       }
-
-      .last-page h1 {
-        font-size: 26px;
-        margin-bottom: 10px;
-      }
-
-      .last-page p {
-        font-size: 15px;
-        max-width: 600px;
-        color: #555;
-        margin: 8px auto;
-      }
-
-      .last-page .footer {
-        margin-top: 40px;
-        font-size: 13px;
-        color: #777;
-      }
-
+      .last-page img { width: 140px; margin-bottom: 20px; }
+      .last-page h1 { font-size: 26px; margin-bottom: 10px; }
+      .last-page p { font-size: 15px; max-width: 600px; color: #555; margin: 8px auto; }
     </style>
   </head>
-
   <body>
-    <!-- Header -->
     <div class="header">
       <img src="data:image/svg+xml;base64,${logoBase64}" alt="Logo" />
     </div>
-
-    <!-- Main Content -->
-    <div class="content">
-      ${htmlContent}
+    <div class="content">${htmlContent}</div>
+    <div class="last-page" style="page-break-before: always;">
+      <img src="data:image/svg+xml;base64,${logoBase64}" alt="Tickernote Logo" />
+      <h1>Disclaimer</h1>
+      <p>This summary has been automatically generated by <strong>Tickernote</strong> using publicly available company reports...</p>
+      <p>This document does not constitute investment advice...</p>
+      <p>Users should not make investment or trading decisions...</p>
+      <p>© Tickernote — AI-generated educational summary.</p>
     </div>
-
-
-<!-- Epilogue / Last Page -->
-<div class="last-page" style="
-  width: 100%;
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  align-items: center;
-  text-align: justify;
-  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-  color: #333;
-  padding: 40px 60px;
-  box-sizing: border-box;
-  overflow: hidden;
-  page-break-before: always;
-">
-
-  <img 
-    src="data:image/svg+xml;base64,${logoBase64}" 
-    alt="Tickernote Logo" 
-    style="width: 120px; height: auto; margin-bottom: 20px;"
-  />
-
-  <h1 style="
-    font-size: 18px;
-    font-weight: 600;
-    color: #111;
-    text-transform: uppercase;
-    letter-spacing: 0.4px;
-    margin-bottom: 15px;
-  ">
-    Disclaimer
-  </h1>
-
-  <div style="flex: 1; max-width: 720px; font-size: 11px; line-height: 1.6; color: #444; overflow: hidden;">
-    <p style="margin-bottom: 10px;">
-      This summary has been automatically generated by <strong>Tickernote</strong> using publicly available company reports, 
-      including but not limited to Annual Reports, DRHPs, and regulatory filings. It is intended solely for educational 
-      and informational purposes to help readers understand business and financial information in a simplified manner.
-    </p>
-
-    <p style="margin-bottom: 10px;">
-      This document does not constitute investment advice, research report, or recommendation of any kind, 
-      whether under SEBI (Research Analysts) Regulations, 2014 or otherwise. Tickernote and its creators do not 
-      provide investment, legal, or financial advice and are not registered with SEBI as research analysts or advisers.
-    </p>
-
-    <p style="margin-bottom: 10px;">
-      Users should not make investment or trading decisions based on this content and are advised to consult 
-      qualified financial professionals before acting on any information. While reasonable care is taken to ensure 
-      accuracy, Tickernote makes no warranty as to the completeness or reliability of this summary.
-    </p>
-
-    <p style="margin-bottom: 0;">
-      © Tickernote — AI-generated educational summary. All information remains the property of the original company 
-      and its respective sources.
-    </p>
-  </div>
-
-  <div style="
-    width: 100%;
-    text-align: center;
-    font-size: 9px;
-    color: #666;
-    border-top: 1px solid #ddd;
-    padding-top: 8px;
-    margin-top: 20px;
-  ">
-    &copy; ${new Date().getFullYear()} Tickernote — All rights reserved.
-  </div>
-</div>
-
-
   </body>
 </html>`;
 
-  // Puppeteer → PDF
-  const browser = await puppeteer.launch({
-    args: ["--no-sandbox", "--disable-setuid-sandbox"],
-    headless: true,
-  });
+    // === 7️⃣ Generate PDF with Puppeteer ===
+    const browser = await puppeteer.launch({
+      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+      headless: true,
+    });
 
-  const page = await browser.newPage();
-  await page.setContent(html, { waitUntil: "domcontentloaded" });
+    const page = await browser.newPage();
+    await page.setContent(html, { waitUntil: "domcontentloaded" });
 
-  const pdfBuffer = await page.pdf({
-    format: "A4",
-    printBackground: true,
-   margin: { top: "40px", bottom: "60px", left: "40px", right: "40px" },
-    displayHeaderFooter: true,
-    headerTemplate: `<div></div>`,
-    footerTemplate: `
-      <div style="
-  width: 100%;
-  font-size: 10px;
-  padding: 8px 20px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-top: 1px solid #ddd;
-  box-sizing: border-box;
-">
-  <div style="flex: 1; text-align: left; white-space: nowrap;">
-    Page <span class='pageNumber'></span> of <span class='totalPages'></span>
-  </div>
+    const pdfBuffer = await page.pdf({
+      format: "A4",
+      printBackground: true,
+      margin: { top: "40px", bottom: "60px", left: "40px", right: "40px" },
+      displayHeaderFooter: true,
+      headerTemplate: `<div></div>`,
+      footerTemplate: `
+      <div style="width:100%;font-size:10px;padding:8px 20px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid #ddd;">
+        <div>Page <span class='pageNumber'></span> of <span class='totalPages'></span></div>
+        <div style="flex:2;text-align:center;font-size:12px;color:#555;">AI summary by <strong>Tickernote</strong> — not investment advice.</div>
+        <div><img src="data:image/svg+xml;base64,${logoFooter}" alt="Tickernote Logo" style="width:70px;height:auto;"/></div>
+      </div>`,
+    });
 
-  <div style="
-    flex: 2;
-    text-align: center;
-    line-height: 1.4;
-    padding: 0 10px;
-    font-size: 12px;
-    color: #555;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  ">
-    AI summary by <strong>Tickernote</strong> — not investment advice.
-  </div>
+    await browser.close();
+    console.log("✅ PDF generated with charts and full layout");
+    return pdfBuffer;
 
-  <div style="flex: 1; text-align: right;">
-    <img 
-      src="data:image/svg+xml;base64,${logoFooter}" 
-      alt="Tickernote Logo" 
-      style="width: 70px; height: auto; vertical-align: middle;"
-    />
-  </div>
-</div>
-`
-  });
-
-  await browser.close();
-  console.log("✅ PDF generated with final epilogue page");
-  return pdfBuffer;
-
-}catch (err) {
+  } catch (err) {
     console.error("❌ PDF generation Error:", err.message);
     throw new Error("PDF generation failed");
   }
 }
+36996

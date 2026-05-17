@@ -1,7 +1,7 @@
 export const parseTickers = (text) => {
   if (!text || typeof text !== "string") return [];
 
-  // Match table rows explicitly
+
   const rows = [...text.matchAll(/\|\s*([A-Z0-9]+)\s*\|\s*([^|]+)\s*\|/g)];
 
   const companies = rows.map(match => {

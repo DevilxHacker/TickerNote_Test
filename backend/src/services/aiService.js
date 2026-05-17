@@ -1,441 +1,132 @@
-// import { GoogleGenAI, createPartFromUri } from "@google/genai";
-// import { Blob } from 'buffer';
-// import {GEMINI_API_KEY} from "../config/serverConfig.js"
-// const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
-
-// export async function summarizePDFwithGemini( buffer) {
-//   try {
-    
-//        const fileBlob = new Blob([buffer], { type: 'application/pdf' });
-//         console.log(`Uploading file of size ${buffer.length} bytes...`)
-//     const file = await ai.files.upload({
-//         file: fileBlob,
-//         config: {
-//             displayName: 'annual_report',
-//         },
-//     });
-//     let getFile = await ai.files.get({ name: file.name });
-//     while (getFile.state === 'PROCESSING') {
-//         getFile = await ai.files.get({ name: file.name });
-//         console.log(`current file status: ${getFile.state}`);
-//         console.log('File is still processing, retrying in 5 seconds');
-
-//         await new Promise((resolve) => {
-//             setTimeout(resolve, 5000);
-//         });
-//     }
-//     if (file.state === 'FAILED') {
-//         throw new Error('File processing failed.');
-//     }
-
-//     // Add the file to the contents.
-//     const content = [
-//         `You are an automated experienced equity research analyst. You will receive the pdf of an Annual Report of a publicly listed Indian company. Your task is to generate a neutral, factual, structured summary in Markdown and your main focus should be to give the investors clarity and deep understanding about the company and its business for making rational investment decisions.
-
-// The summary must strictly follow the structure below, with each section treated as one page (max length ~ 15 pages). Use only the information from the report. If something is not available, write “Not Disclosed in Report.” Keep the report in structured format no unstructured format in the results would be accepted.
-// The tone must be neutral, simple, and explanatory — avoid promotional, judgmental, or advisory language.
-
-// Business Snapshot & Model
-
-// Briefly describe the company’s core business in 5-10 sentences.
-
-// List its main products, services, and customer segments (Show it clearly in structured table format).
-
-// Give in detail the value chain of the product from making till distribution (if given in the original report)
-
-// Revenue breakdown by business segment and geography
-
-// Core revenue streams (product sales, services, contracts, subscriptions).
-
-// Key raw materials, suppliers, distribution channels, major cost drivers.
-
-// Any structural changes during the year (mergers, acquisitions, divestments).
-
-// Chairman/Managing Director’s Letter:
-
-// Summarize the overall tone (e.g., Optimistic, Cautious, Confident). Also include the words said by the chairman or MD (Give the spoken words in quotes).
-
-// List the key achievements highlighted for the past year.
-
-// Extract direct quotes or summaries of the company's stated strategic priorities for the upcoming year.
-
-// Identify the primary challenges or headwinds mentioned by the management.
-
-// Industry & Macro Overview
-
-// Summarize industry environment and demand drivers.
-
-// Key challenges (e.g., raw material prices, regulation, competition).
-
-// Company’s relative positioning in the industry (only factual disclosures).
-
-// Financial Statement Analysis (Consolidated)
-
-// Under this if the company does not have any subsidiaries mention that the company has no subsidiaries and the financials show only of the company.
-
-// Present a table with columns as years and rows and the no. of years as given in the original report (strictly show the years which is given in the original report)
-
-// Revenue from Operations
-
-// EBITDA
-
-// Net Profit (Profit After Tax)
-
-// Basic EPS
-
-// EBITDA Margin %
-
-// Net Profit Margin %
-
-// ROE %
-
-// ROCE %
-
-// Debt-to-Equity Ratio
-
-// Trends Summary:
-
-// 3-4 neutral sentences explaining main revenue/margin/debt drivers.
-
-// Financial Statement Analysis (Standalone)
-
-// Under this if the company does not have any subsidiaries mention that the company has no subsidiaries and the financials show only of the company.
-
-// Use the same table format as Page 3, but for standalone results (strictly show the years which is given in the original report).
-
-// Trends Summary:
-
-// 3–4 neutral sentences comparing standalone performance to consolidated.
-
-// Segment & Geography Performance
-
-// Create tables with Charts for each:
-
-// Segment-wise: Revenue, EBIT/EBITDA, Margins %, % of total revenue.
-
-// Geography-wise: Revenue by region, % of total revenue.
-
-// Shareholding Pattern
-
-// Promoter holding %
-
-// Institutional holding % (mutual funds, FIIs)
-
-// Retail & public holding %
-
-// Any major changes during the year.
-
-// Capital Allocation, Dividend & Cash Flow
-
-// Capex during the year and planned capex (₹, if disclosed).
-
-// Dividend per share and payout ratio (last 3–5 years table if disclosed).
-
-// Equity actions (buybacks, issuances, allotments).
-
-// Debt levels (gross debt, net debt, debt/equity movement).
-
-// Cash flow summary: CFO, CFI, CFF (as shown in original attached report and show it in table format )
-
-// Simple check: whether CFO > Net Profit or CFO < Net Profit.
-
-// Key Takeaways (bullets):
-
-// How cash was generated and deployed.
-
-// Any notable change in debt or equity.
-
-// Management Discussion & Analysis Snapshot
-
-// Operational Performance Review: Summarize management's commentary on what drove operational performance beyond the financials (e.g., volume growth, price increases, new product launches, efficiency programs).
-
-// Key Performance Indicators (KPIs): List any non-financial KPIs discussed (e.g., plant capacity utilization, customer acquisition numbers, store expansions, user engagement metrics).
-
-// Demand & Outlook Commentary: What does management say about the demand environment, order book, and their outlook for the industry and the company's position within it?
-
-// Strategic Initiatives: Detail any new projects, R&D efforts, or market expansion plans discussed.
-
-// Governance & Management Snapshot
-
-// Total number of directors and number of independent directors.
-
-// Key leadership: Chairman, CEO/MD, CFO. (Show them in table format with their Full name, Position, Education, Experience in years as shown in report if given in the original report) if their education, experience is not given in the original report take the reference from google to find out and then give the education and experience.
-
-// Key appointments or resignations.
-
-// Primary board committees (Audit, NRC, Risk, CSR).
-
-// Auditor’s Report
-
-// Name of auditing firm.
-
-// Audit opinion (Unqualified, Qualified, Adverse, Disclaimer).
-
-// If Qualified/Modified, give factual reason in detail.
-
-// Any Emphasis of Matter paragraphs (summarize factually).
-
-// Risks & Other Material Disclosures
-
-// Risk Factors (categorized with detail and with clarity to help in decision making):
-
-// Business risks
-
-// Financial risks
-
-// Regulatory/legal risks
-
-// Other Disclosures:
-
-// Contingent liabilities (₹ value, nature).
-
-// Subsidiary/JV performance (if disclosed).
-
-// Regulatory filings or SEBI/BSE actions.
-
-// Share pledging (if any).
-
-// ESG & CSR Highlights
-
-// CSR spend (₹ and % of average profits).
-
-// Focus areas (education, health, environment, etc.).
-
-// Environmental initiatives (renewable use, emissions reduction, etc.).
-
-// Governance/ethics disclosures (if mentioned).
-
-// Do not repeat explanations. 
-// - Each section should be explained only once. 
-// - Maintain the order of sections exactly as given.
-
-// temperature = 0.1`,
-//     ];
-
-//     if (file.uri && file.mimeType) {
-//         const fileContent = createPartFromUri(file.uri, file.mimeType);
-//         content.push(fileContent);
-//     }
-
-//     const response = await ai.models.generateContent({
-//         model: 'gemini-2.5-flash-lite',
-//         contents: content,
-//         config: {
-//         temperature: 0.1,
-//         maxOutputTokens: 15000, // <-- Set the generation config here
-//     },
-//     });
-
-//     console.log(response.text);
-
-//     return response.text;
-//   } catch (err) {
-//     console.error("❌ Gemini API Error:", err.message);
-//     throw new Error("Gemini summary generation failed");
-//   }
-// }
-
-
 import { GoogleGenAI, createPartFromUri } from "@google/genai";
 import { Blob } from 'buffer';
 import * as fs from 'fs/promises'; 
+import {GEMINI_API_KEY} from '../config/serverConfig.js';
 
-// NOTE: Ensure your API key setup is correct 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "YOUR_API_KEY"; 
 
 const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
 
-// --- Configuration Constants ---
-const MODEL_NAME = 'gemini-2.5-pro'; // Upgraded model for reliability and complexity
+
+const MODEL_NAME = 'gemini-3.1-flash-lite-preview'; 
 const MAX_RETRIES = 5; 
 const INITIAL_DELAY_MS = 2000; 
 
-// --- 1. Define the System Instruction (The detailed structure and rules) ---
-// (This large string remains the same for strict formatting)
-const systemInstruction = `You are an automated experienced equity research analyst. You will receive the pdf of an Annual Report of a publicly listed Indian company. Your task is to generate a neutral, factual, structured summary in Markdown and your main focus should be to give the investors clarity and deep understanding about the company and its business for making rational investment decisions.
+//prompt
+const systemInstruction = `***
 
-The summary must strictly follow the structure below, with each section treated as one page (max length ~ 15 pages). Use only the information from the report. If something is not available, write “Not Disclosed in Report.” Keep the report in structured format no unstructured format in the results would be accepted.
-The tone must be neutral, simple, and explanatory — avoid promotional, judgmental, or advisory language.
+### Prompt Template
 
-Business Snapshot & Model
+*Heading:*
 
-Briefly describe the company’s core business in 5-10 sentences.
+Company Name_Report Type (Annual Report/DRHP/Concall)_Year of Publication
 
-List its main products, services, and customer segments (Show it clearly in structured table format).
+***
 
-Give in detail the value chain of the product from making till distribution (if given in the original report)
+You are an automated, experienced equity research analyst. You will receive the PDF of an Annual Report, DRHP, or Concall of a publicly listed Indian company. Your task is to generate a neutral, factual, and highly structured summary in Markdown without introductory filler. Focus on investor clarity and deep understanding.
 
-Revenue breakdown by business segment and geography
+Your summary must strictly follow the structure below. Each section should be treated as one distinct page (maximum length: ~15 pages for each section). Use only information from the report; if something is not available, write “Not Disclosed in Report.” Do not present any information in unstructured format. The tone must be neutral, simple, and explanatory; avoid promotional, judgmental, or advisory language.
 
-Core revenue streams (product sales, services, contracts, subscriptions).
+#### [SECTION ORDER—EXACTLY AS LISTED]
 
-Key raw materials, suppliers, distribution channels, major cost drivers.
+***
 
-Any structural changes during the year (mergers, acquisitions, divestments).
+## Business Snapshot & Model
 
-Chairman/Managing Director’s Letter:
+- Provide a concise description of the company’s core business in 5–10 sentences.
+- List main products, services, and customer segments in a structured Markdown table.
+- Detail the value chain if available.
+- Report revenue breakdown by business segment and geography.
+- List core revenue streams.
+- State key raw materials, suppliers, distribution channels, and major cost drivers.
+- Note structural changes if any (mergers, acquisitions, divestments).
 
-Summarize the overall tone (e.g., Optimistic, Cautious, Confident). Also include the words said by the chairman or MD (Give the spoken words in quotes).
+## Chairman/Managing Director’s Letter
 
-List the key achievements highlighted for the past year.
+- Summarize the overall tone (Optimistic, Cautious, etc.).
+- Include direct quotes from the chairman or MD.
+- List key achievements from the past year.
+- Present strategic priorities in direct quotes or summary.
+- Highlight main challenges or headwinds mentioned by management.
 
-Extract direct quotes or summaries of the company's stated strategic priorities for the upcoming year.
+## Industry & Macro Overview
 
-Identify the primary challenges or headwinds mentioned by the management.
+- Summarize the industry environment and demand drivers.
+- Present key challenges and company’s industry positioning (only factual disclosures).
 
-Industry & Macro Overview
+## Financial Statement Analysis (Consolidated)
 
-Summarize industry environment and demand drivers.
+- State whether the company has subsidiaries.
+- Present a Markdown table with columns for each year as reported (no extrapolation).
+- Table rows must include:
+  - Revenue from Operations
+  - EBITDA
+  - Net Profit (PAT)
+  - Basic EPS
+  - EBITDA Margin %
+  - Net Profit Margin %
+  - ROE %
+  - ROCE %
+  - Debt-to-Equity Ratio
+- 3–4 neutral sentences summarizing main revenue, margin, debt drivers.
 
-Key challenges (e.g., raw material prices, regulation, competition).
+## Financial Statement Analysis (Standalone)
 
-Company’s relative positioning in the industry (only factual disclosures).
+- Repeat above for standalone results if applicable.
+- 3–4 neutral sentences comparing standalone to consolidated.
 
-Financial Statement Analysis (Consolidated)
+## Segment & Geography Performance
 
-Under this if the company does not have any subsidiaries mention that the company has no subsidiaries and the financials show only of the company.
+- Segment-wise: Use stacked bar chart for revenue, EBIT/EBITDA, margins %, % of total revenue, represented in Markdown tables.
+- Geography-wise: Pie chart or bar chart format in Markdown for region-wise revenue, % total.
 
-Present a table with columns as years and rows and the no. of years as given in the original report (strictly show the years which is given in the original report)
+## Shareholding Pattern
 
-Revenue from Operations
+- Pie chart or Markdown table showing promoter, institutional (mutual funds, FIIs), retail/public holding %.
+- Note any significant changes during the year.
 
-EBITDA
+## Capital Allocation, Dividend & Cash Flow
 
-Net Profit (Profit After Tax)
+- Table/line chart for capex, dividends, payout ratio, equity actions, debt levels, and cash flow summary (CFO, CFI, CFF), mark source and usage.
+- Quick check: is CFO > Net Profit or vice versa?
+- Bulleted takeaways about cash generation, deployment, debt/equity changes.
 
-Basic EPS
+## Management Discussion & Analysis Snapshot
 
-EBITDA Margin %
+- Summarize management’s operational review, KPIs, demand/outlook, strategic initiatives.
 
-Net Profit Margin %
+## Governance & Management Snapshot
 
-ROE %
+- Markdown table listing directors (total, independent), key leadership (full name, position, education, experience in years)—if education/experience not in report, find and include from Google.
+- Note key appointments/resignations, board committees.
 
-ROCE %
+## Auditor’s Report
 
-Debt-to-Equity Ratio
+- Name of auditing firm.
+- Audit opinion, factual reasoning (if qualified).
+- Summarize emphasis of matters.
 
-Trends Summary:
+## Risks & Other Material Disclosures
 
-3-4 neutral sentences explaining main revenue/margin/debt drivers.
+- List and categorize risk factors with direct clarity.
+- Note contingent liabilities, regulatory actions, share pledging, and ESG/CSR matters.
 
-Financial Statement Analysis (Standalone)
+## ESG & CSR Highlights
 
-Under this if the company does not have any subsidiaries mention that the company has no subsidiaries and the financials show only of the company.
+- Present CSR spend, focus areas, environmental initiatives, governance/ethics disclosures.
+- Use Markdown tables or bullet points wherever best for clarity.
 
-Use the same table format as Page 3, but for standalone results (strictly show the years which is given in the original report).
+##### Additional instructions:
 
-Trends Summary:
+- Never repeat explanations or start with “Here is the summary.”
+- Maintain strict section order and explicit Markdown formatting.
+- All charts must be represented as structured Markdown tables (e.g., "| Year | Metric | Value (%) |") or described as pie/stacked bar, not images.
+- Output must be neutral—no investment advice, recommendations, or judgmental language.
 
-3–4 neutral sentences comparing standalone performance to consolidated.
+temperature = 0.1
 
-Segment & Geography Performance
+***`;
 
-Create tables with Charts for each:
 
-Segment-wise: Revenue, EBIT/EBITDA, Margins %, % of total revenue.
-
-Geography-wise: Revenue by region, % of total revenue.
-
-Shareholding Pattern
-
-Promoter holding %
-
-Institutional holding % (mutual funds, FIIs)
-
-Retail & public holding %
-
-Any major changes during the year.
-
-Capital Allocation, Dividend & Cash Flow
-
-Capex during the year and planned capex (₹, if disclosed).
-
-Dividend per share and payout ratio (last 3–5 years table if disclosed).
-
-Equity actions (buybacks, issuances, allotments).
-
-Debt levels (gross debt, net debt, debt/equity movement).
-
-Cash flow summary: CFO, CFI, CFF (as shown in original attached report and show it in table format )
-
-Simple check: whether CFO > Net Profit or CFO < Net Profit.
-
-Key Takeaways (bullets):
-
-How cash was generated and deployed.
-
-Any notable change in debt or equity.
-
-Management Discussion & Analysis Snapshot
-
-Operational Performance Review: Summarize management's commentary on what drove operational performance beyond the financials (e.g., volume growth, price increases, new product launches, efficiency programs).
-
-Key Performance Indicators (KPIs): List any non-financial KPIs discussed (e.g., plant capacity utilization, customer acquisition numbers, store expansions, user engagement metrics).
-
-Demand & Outlook Commentary: What does management say about the demand environment, order book, and their outlook for the industry and the company's position within it?
-
-Strategic Initiatives: Detail any new projects, R&D efforts, or market expansion plans discussed.
-
-Governance & Management Snapshot
-
-Total number of directors and number of independent directors.
-
-Key leadership: Chairman, CEO/MD, CFO. (Show them in table format with their Full name, Position, Education, Experience in years as shown in report if given in the original report) if their education, experience is not given in the original report take the reference from google to find out and then give the education and experience.
-
-Key appointments or resignations.
-
-Primary board committees (Audit, NRC, Risk, CSR).
-
-Auditor’s Report
-
-Name of auditing firm.
-
-Audit opinion (Unqualified, Qualified, Adverse, Disclaimer).
-
-If Qualified/Modified, give factual reason in detail.
-
-Any Emphasis of Matter paragraphs (summarize factually).
-
-Risks & Other Material Disclosures
-
-Risk Factors (categorized with detail and with clarity to help in decision making):
-
-Business risks
-
-Financial risks
-
-Regulatory/legal risks
-
-Other Disclosures:
-
-Contingent liabilities (₹ value, nature).
-
-Subsidiary/JV performance (if disclosed).
-
-Regulatory filings or SEBI/BSE actions.
-
-Share pledging (if any).
-
-ESG & CSR Highlights
-
-CSR spend (₹ and % of average profits).
-
-Focus areas (education, health, environment, etc.).
-
-Environmental initiatives (renewable use, emissions reduction, etc.).
-
-Governance/ethics disclosures (if mentioned).
-
-Do not repeat explanations. 
-- Each section should be explained only once. 
-- Maintain the order of sections exactly as given.`;
-
-/**
- * Summarizes a PDF annual report using the Gemini API.
- * @param {Buffer} buffer The PDF file content as a Buffer.
- * @returns {Promise<string>} The structured summary in Markdown format.
- */
 export async function summarizePDFwithGemini(buffer) {
     let file = null; 
     
@@ -443,7 +134,6 @@ export async function summarizePDFwithGemini(buffer) {
         const fileBlob = new Blob([buffer], { type: 'application/pdf' });
         console.log(`Uploading file of size ${buffer.length} bytes...`);
         
-        // --- 2. Upload the file ---
         file = await ai.files.upload({
             file: fileBlob,
             displayName: 'annual_report_for_summary',
@@ -453,7 +143,6 @@ export async function summarizePDFwithGemini(buffer) {
         let attempts = 0;
         const maxProcessingAttempts = 20; 
 
-        // --- 3. Wait for File Processing with Timeout ---
         while (getFile.state === 'PROCESSING' && attempts < maxProcessingAttempts) {
             getFile = await ai.files.get({ name: file.name });
             console.log(`Current file status: ${getFile.state}. Waiting...`);
@@ -469,7 +158,6 @@ export async function summarizePDFwithGemini(buffer) {
             throw new Error(errorMsg);
         }
 
-        // --- 4. Prepare Content for Generation ---
         const content = [];
         if (file.uri && file.mimeType) {
             const fileContent = createPartFromUri(file.uri, file.mimeType);
@@ -477,7 +165,7 @@ export async function summarizePDFwithGemini(buffer) {
         }
         content.push({ text: "Generate the full structured Annual Report summary based on the attached PDF, strictly following the system instruction." });
         
-        // --- 5. Exponential Backoff Retry for Generation (Handles 503 Errors) ---
+        // retry if fails
         let response = null;
         let delay = INITIAL_DELAY_MS;
 
@@ -486,14 +174,14 @@ export async function summarizePDFwithGemini(buffer) {
                 console.log(`Attempt ${attempt} of ${MAX_RETRIES} to generate content using ${MODEL_NAME}.`);
 
                 response = await ai.models.generateContent({
-                    model: MODEL_NAME, // Using the Pro model
+                    model: MODEL_NAME, 
                     contents: content,
                     config: {
-                        maxOutputTokens: 30000, // Very high limit to ensure completion
+                        maxOutputTokens: 30000, 
                         temperature: 0.1,
                         systemInstruction: systemInstruction,
-                        stopSequences: [], // CRITICAL: Disables default stop words
-                        safetySettings: [ // CRITICAL: Minimizes policy blocks
+                        stopSequences: [], 
+                        safetySettings: [ 
                             { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
                             { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
                             { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
@@ -515,7 +203,7 @@ export async function summarizePDFwithGemini(buffer) {
                         throw new Error(`Model remains unavailable after ${MAX_RETRIES} attempts. Last error: ${err.message}`);
                     }
                 } else {
-                    throw err; // Throw non-retryable errors immediately
+                    throw err; 
                 }
             }
         }
@@ -524,24 +212,22 @@ export async function summarizePDFwithGemini(buffer) {
              throw new Error("Failed to get a valid response after all retries.");
         }
         
-        // --- 6. Persist Output and Clean Up ---
-        
-        // Write the output to a file so it persists and doesn't disappear from the terminal
+       
         const outputFileName = 'annual_report_summary.md';
         await fs.writeFile(outputFileName, response.text);
         
-        // CRUCIAL: Delete the uploaded file
+
         await ai.files.delete({ name: file.name });
 
         console.log("------------------------------------------------");
-        console.log(`✅ SUCCESS! Summary written to: ${outputFileName}`);
+        console.log(`SUCCESS! Summary written to: ${outputFileName}`);
         console.log(`Model Finish Reason: ${response.candidates[0].finishReason}`);
         console.log("------------------------------------------------");
         
         return response.text;
 
     } catch (err) {
-        // Final error handler to ensure file cleanup and proper error propagation
+       
         if (file) {
             try {
                 await ai.files.delete({ name: file.name });
@@ -550,7 +236,7 @@ export async function summarizePDFwithGemini(buffer) {
                 console.error("Failed to clean up file:", cleanupError.message);
             }
         }
-        console.error("❌ Gemini API Error:", err.message);
+        console.error("Gemini API Error:", err.message);
         throw new Error("Gemini summary generation failed");
     }
 }
