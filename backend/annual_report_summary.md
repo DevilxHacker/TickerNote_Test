@@ -1,147 +1,122 @@
-# Tata Consultancy Services_Annual Report_2023-2024
+State Bank of India_Annual Report_2024-25
+
+***
 
 ## Business Snapshot & Model
 
-- Tata Consultancy Services (TCS) is a global IT services, consulting, and business solutions organization.
-- It partners with many of the world’s largest businesses in their transformation journeys, leveraging its consulting-led, cognitive-powered portfolio of business, technology, and engineering services.
-- The company operates through a unique "Location Independent Agile™" delivery model.
-- TCS is part of the Tata group, India’s largest multinational business group.
-- The company has over 601,000 consultants across 54 countries.
+- State Bank of India (SBI) is the largest bank in India, with a heritage spanning over 200 years. It provides a comprehensive suite of financial services, including retail and corporate banking, SME banking, agriculture banking, and international banking.
+- The bank operates through a vast network of 22,937 branches across 17 circles and 244 overseas offices in 29 countries.
+- SBI serves over 52 crore customers and is a key player in government-backed financial inclusion schemes.
+- The bank’s business model is built on "Consistency, Productivity, and Resilience," focusing on digital innovation, customer centricity, and long-term relationships.
+- Key revenue streams include Net Interest Income (NII), fee-based income, and income from subsidiaries.
+- The bank operates through several business verticals: Personal Banking & Real Estate, Agri & SME, Corporate Accounts Group (CAG), Commercial Clients Group (CCG), and International Banking Group (IBG).
+- Structural changes in FY2025 included the bifurcation of Andhra Pradesh Grameena Vikas Bank (APGVB) following the reorganisation of Andhra Pradesh and Telangana.
 
-| Product/Service Segment | Description | Customer Segments |
-| :--- | :--- | :--- |
-| IT Services & Consulting | Digital transformation, cloud, AI/GenAI, cybersecurity | BFSI, Manufacturing, Retail, Healthcare, Utilities |
-| Products & Platforms | TCS BaNCS™, ignio™, MasterCraft™, etc. | Global enterprises across various industries |
-
-- **Value Chain:** The company leverages contextual knowledge, domain expertise, and intellectual capital to deliver bespoke solutions. It utilizes a global network of delivery centers and co-innovation hubs (Pace Ports).
-- **Revenue Breakdown:**
-    - **By Segment:** Banking, Financial Services and Insurance (37.7%), Communication, Media and Technology (16.4%), Consumer Business (16.3%), Life Sciences and Healthcare (11.1%), Manufacturing (9.8%), Others (8.7%).
-    - **By Geography:** North America (51.1%), United Kingdom (16.5%), Continental Europe (14.9%), Asia Pacific (7.8%), India (5.6%), Middle East and Africa (2.1%), Latin America (2.0%).
-- **Core Revenue Streams:** IT services, consulting, and licensing/subscription of proprietary platforms.
-- **Key Cost Drivers:** Employee benefit expenses (largest cost component), facility expenses, and project-related costs.
-- **Structural Changes:** During FY 2024, Saudi Desert Rose Holding B.V. was merged with Tata Consultancy Services Netherlands BV. Diligenta Limited incorporated a subsidiary, Diligenta (Europe) B.V.
+| Product/Service | Customer Segment |
+| :--- | :--- |
+| Personal Banking (Home, Auto, Personal Loans) | Individuals |
+| Rural Banking (Agri & Allied Activities) | Farmers, SHGs |
+| SME Banking | MSMEs |
+| Corporate Banking | Large Corporates, PSUs |
+| Government Business | Central/State Govt Ministries |
+| International Banking | Global Indian Corporates, Diaspora |
 
 ## Chairman/Managing Director’s Letter
 
-- **Tone:** Optimistic, emphasizing resilience and strategic positioning for future growth.
-- **Direct Quotes:** "Across industries globally, there are multiple mega trends that are shaping priorities of businesses: AI, New Energy, Supply Chain and Talent. These transitions will require substantial investment in technology across industry sectors."
-- **Key Achievements:**
-    - Crossed annual revenues of ₹240,893 crore (6.8% growth).
-    - Industry-leading operating margin of 24.6%.
-    - All-time high order book of US$ 42.7 billion.
-    - Retained ranking as the second most valuable global IT services brand (US$19.2 billion).
-- **Strategic Priorities:**
-    - "Your company is making significant investments and building capabilities to partner with customers during this phase of rapid technological shifts."
-    - Focus on AI/GenAI, energy transition, 5G/6G infrastructure, and talent upskilling.
-- **Challenges/Headwinds:** Global economic slowdown in developed markets, geopolitical conflicts impacting supply chains, and pressure on discretionary spending.
+- **Tone:** Optimistic and resilient.
+- **Key Quotes:** "With a 52 Crore customer base and growing, your Bank is committed to offering excellence in customer experience. Hence, the importance of customer centricity and long-term relationships cannot be overstated."
+- **Key Achievements:** Net profit reached ₹70,901 Crore; Operating profit crossed ₹1 Lakh Crore; Gross NPA improved to 1.82%; Highest ever CET 1 ratio at 10.81%.
+- **Strategic Priorities:** Improving operational efficiency through automation and data-driven decision-making; enhancing customer experience; sustaining market leadership; strengthening human resource capabilities; supporting risk-adjusted growth.
+- **Challenges:** Global growth headwinds (trade barriers, currency swings, fractured capital flows); potential impact of trade wars on global GDP.
 
 ## Industry & Macro Overview
 
-- The global macro-outlook is showing signs of improvement after two years of recessionary fears, high inflation, and monetary tightening.
-- Industries are undergoing significant shifts driven by AI, energy transition, and supply chain rebalancing.
-- The IT services industry remains highly fragmented.
-- Demand is currently driven by vendor consolidation, cloud migration, and cost optimization initiatives.
+- The Indian economy continues to display maturity and resilience, with real GDP growth forecasted at 6.5% for FY2025 and FY2026.
+- The banking sector exhibited sustained strength, though credit growth moderated in H2 due to global uncertainty.
+- Inflation has moderated below 4%, supporting a stable macroeconomic environment.
+- The bank is focused on ringfencing the economy from global upheavals through healthier corporate and bank balance sheets.
 
 ## Financial Statement Analysis (Consolidated)
 
-- The company has 51 subsidiaries as of March 31, 2024.
+- The company has numerous subsidiaries, including SBI Life Insurance, SBI General Insurance, SBI Cards, and SBI Funds Management.
 
-| Metric (₹ crore) | FY 2024 | FY 2023 |
+| Metric | 2023-24 | 2024-25 |
 | :--- | :--- | :--- |
-| Revenue from Operations | 240,893 | 225,458 |
+| Revenue from Operations | Not Disclosed | Not Disclosed |
 | EBITDA | Not Disclosed | Not Disclosed |
-| Net Profit (PAT) | 46,099 | 42,303 |
-| Basic EPS (₹) | 125.88 | 115.19 |
+| Net Profit (PAT) | 67,084.67 Cr | 77,561.34 Cr |
+| Basic EPS | 75.17 | 86.91 |
 | EBITDA Margin % | Not Disclosed | Not Disclosed |
-| Net Profit Margin % | 19.1% | 18.7% |
+| Net Profit Margin % | Not Disclosed | Not Disclosed |
 | ROE % | Not Disclosed | Not Disclosed |
 | ROCE % | Not Disclosed | Not Disclosed |
 | Debt-to-Equity Ratio | Not Disclosed | Not Disclosed |
 
-- **Drivers:** Revenue growth was driven by strong deal momentum and resilience in demand. Margin improvement was supported by productivity gains, better utilization, and reduced subcontractor expenses.
+- **Drivers:** Profitability was driven by robust growth in advances and deposits, improved asset quality, and strong performance of subsidiaries.
 
 ## Financial Statement Analysis (Standalone)
 
-| Metric (₹ crore) | FY 2024 | FY 2023 |
+| Metric | 2023-24 | 2024-25 |
 | :--- | :--- | :--- |
-| Revenue from Operations | 202,359 | 190,354 |
-| Net Profit (PAT) | 43,559 | 39,106 |
-| Basic EPS (₹) | 119.44 | 106.88 |
+| Revenue from Operations | Not Disclosed | Not Disclosed |
+| EBITDA | Not Disclosed | Not Disclosed |
+| Net Profit (PAT) | 61,077 Cr | 70,901 Cr |
+| Basic EPS | 68.44 | 79.44 |
+| EBITDA Margin % | Not Disclosed | Not Disclosed |
+| Net Profit Margin % | Not Disclosed | Not Disclosed |
+| ROE % | 20.32% | 19.87% |
+| ROCE % | Not Disclosed | Not Disclosed |
+| Debt-to-Equity Ratio | Not Disclosed | Not Disclosed |
 
-- Standalone revenue grew by 6.3% compared to 6.8% consolidated growth. Standalone PAT grew by 11.4% compared to 8.9% consolidated PAT growth.
+- **Drivers:** Standalone performance was marked by operating profit crossing ₹1 Lakh Crore and a significant reduction in Gross NPA.
 
 ## Segment & Geography Performance
 
-- **Segment-wise Revenue (FY 2024):**
-    - Banking, Financial Services and Insurance: ₹90,928 crore
-    - Communication, Media and Technology: ₹39,391 crore
-    - Consumer Business: ₹39,357 crore
-    - Manufacturing: ₹23,491 crore
-    - Life Sciences and Healthcare: ₹26,745 crore
-    - Others: ₹20,981 crore
-- **Geography-wise Revenue (FY 2024):**
-    - North America: ₹123,094 crore
-    - United Kingdom: ₹39,852 crore
-    - Continental Europe: ₹35,772 crore
-    - Asia Pacific: ₹18,851 crore
-    - India: ₹13,562 crore
-    - Middle East and Africa: ₹4,917 crore
-    - Latin America: ₹4,845 crore
+- **Segment-wise:** Retail Banking remains the largest segment, accounting for 99.48% of branches and 95.01% of the workforce.
+- **Geography-wise:** The bank operates domestically and internationally across 29 countries.
 
 ## Shareholding Pattern
 
-| Category | Holding % |
+| Category | Holding % (as on 31st March 2025) |
 | :--- | :--- |
-| Promoter | 71.74% |
-| Institutional (Mutual Funds, FIIs, etc.) | 22.72% |
-| Retail/Public | 5.54% |
-
-- Significant changes: Promoter holding decreased slightly from 72.27% in FY 2023 to 71.74% in FY 2024.
+| President of India | 56.92% |
+| Mutual Funds & UTI | 12.54% |
+| Banks/ FIs/ Insurance Cos., etc. | 12.28% |
+| Non-residents (FIIs/OCBs/NRIs/GDRs) | 11.07% |
+| Others (including Resident Individuals) | 6.63% |
+| Private Corporate Bodies | 0.56% |
 
 ## Capital Allocation, Dividend & Cash Flow
 
-- **Capex:** ₹2,650 crore (Standalone).
-- **Dividends:** Final dividend of ₹28 per share recommended; total dividend for the year is ₹73 per share.
-- **Buyback:** Completed fifth buyback program, distributing ₹17,000 crore.
-- **Cash Flow Summary:**
-    - Net cash generated from operating activities: ₹44,338 crore (Consolidated).
-    - CFO > Net Profit (Consolidated PAT: ₹46,099 crore).
-- **Takeaways:** The company maintains a policy of returning substantial free cash flow to shareholders. Total shareholder payout for FY 2024 was ₹47,445 crore.
+- **Dividend:** Declared a dividend of ₹15.90 per equity share for FY2025.
+- **Capex:** Not Disclosed in detail, but significant investment in digital infrastructure (YONO, IT systems).
+- **Cash Flow:** CFO is positive, reflecting strong operational performance.
 
-## Management Discussion and Analysis Snapshot
+## Management Discussion & Analysis Snapshot
 
-- Management highlights resilience in demand despite macroeconomic uncertainties.
-- Strategic focus remains on "Customer Centricity and Employee Empathy."
-- Key demand drivers include cloud transformation, AI/GenAI adoption, and cybersecurity.
-- The company is investing in upskilling its workforce (over 600,000 employees) and building indigenous telecom stacks (e.g., BSNL project).
+- Management emphasizes "Consistency, Productivity, and Resilience" as the pillars of excellence.
+- Strategic focus on digital transformation (YONO 2.0), financial inclusion, and sustainable finance (Green deposits, EV financing).
+- Proactive risk management through robust credit appraisal and monitoring frameworks.
 
 ## Governance & Management Snapshot
 
-| Name | Position |
-| :--- | :--- |
-| N Chandrasekaran | Chairman |
-| K Krithivasan | CEO & MD |
-| N G Subramaniam | COO & ED |
-| Samir Seksaria | CFO |
-
-- Board consists of 9 directors: 5 Independent, 2 Non-Independent Executive, 2 Non-Independent Non-Executive.
-- Key committees: Audit, Nomination and Remuneration, Stakeholders’ Relationship, Corporate Social Responsibility, Risk Management, Executive.
+- The Central Board is headed by the Chairman, Shri Challa Sreenivasulu Setty.
+- The board includes 4 Managing Directors and 7 Non-Executive Directors.
+- Key committees include the Executive Committee of the Central Board (ECCB), Audit Committee of the Board (ACB), and Risk Management Committee of the Board (RMCB).
 
 ## Auditor’s Report
 
-- **Auditing Firm:** B S R & Co. LLP.
-- **Audit Opinion:** Unmodified opinion on both standalone and consolidated financial statements.
-- **Emphasis of Matters:** Not Disclosed in Report.
+- **Auditing Firm:** M/s. Ravi Rajan & Co. LLP (Statutory Central Auditors).
+- **Audit Opinion:** Unmodified opinion on standalone and consolidated financial statements.
 
 ## Risks & Other Material Disclosures
 
-- **Key Risks:** Volatile global political/economic environment, talent attraction/retention, global mobility restrictions, business model changes, intellectual property infringement, litigation risks, and climate change.
-- **Contingent Liabilities:** Direct tax matters (₹1,871 crore), indirect tax matters (₹1,161 crore), and other claims (₹126 crore).
-- **ESG/CSR:** Committed to Net Zero by 2030. CSR spend of ₹827 crore in FY 2024.
+- **Risks:** Credit risk, market risk, liquidity risk, operational risk (including IT and third-party risk), and climate risk.
+- **Contingent Liabilities:** Detailed in Schedule 12 of the financial statements.
+- **ESG/CSR:** Significant focus on CSR with ₹610.77 Crore expenditure in FY2025.
 
 ## ESG & CSR Highlights
 
-- **CSR Spend:** ₹827 crore.
-- **Focus Areas:** Education, Livelihood, Employment, Entrepreneurship, Healthcare.
-- **Environmental Initiatives:** 80% reduction in Scope 1 and 2 emissions (vs 2016 baseline), 74% renewable energy usage.
-- **Governance:** Adherence to Tata Code of Conduct (TCoC).
+- **CSR Spend:** ₹610.77 Crore.
+- **Focus Areas:** Education, Healthcare, Community Development, Disaster Management, Environment, and Welfare of Persons with Disabilities.
+- **Environmental Initiatives:** Target of 7.5% green portfolio by 2030; 61 IGBC-certified buildings; 542 rainwater harvesting systems; 31 MW solar capacity installed.
