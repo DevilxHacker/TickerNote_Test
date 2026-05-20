@@ -7,7 +7,7 @@ import {GEMINI_API_KEY} from '../config/serverConfig.js';
 const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
 
 
-const MODEL_NAME = 'gemini-3.1-flash-lite-preview'; 
+const MODEL_NAME = 'gemini-3.1-pro-preview'; 
 const MAX_RETRIES = 5; 
 const INITIAL_DELAY_MS = 2000; 
 

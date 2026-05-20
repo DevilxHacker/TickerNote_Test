@@ -6,7 +6,7 @@ import Summarizer from './Pages/Summarizer';
 import Login from './Pages/Login';
 import Register from './Pages/Register';
 import { GoogleOAuthProvider } from '@react-oauth/google';
-
+import PythonConnectionTest from "./Pages/PythonConnectionTest";
 const ProtectedRoute = ({ children }) => {
   const token = localStorage.getItem('token');
   if (!token) return <Navigate to="/login" />;
@@ -15,9 +15,12 @@ const ProtectedRoute = ({ children }) => {
 
 function App() {
   return (
+    
     <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
       <Routes>
         {/* Public routes */}
+        <Route path="/
+        " element={<PythonConnectionTest />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
