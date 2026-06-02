@@ -8,7 +8,7 @@ import pythonRoutes from "./routers/testFile.js";
 import errorHandler from "./middlewares/errorHandler.js";
 import path from "path";
 import userRoutes from '../src/routers/userRouter.js'
-
+// import chatrouter from '../src/routers/chatRouter.js'
 connectDB();
 
 const app = express();
@@ -27,6 +27,7 @@ app.use("/screener", screenerRouter)
 app.use('/api/users', userRoutes);
 app.use("/python", pythonRoutes);
 app.use(errorHandler);
+// app.use("/chat", chatrouter);
 
 app.get("/", (req, res) => res.send("Backend running"));
 

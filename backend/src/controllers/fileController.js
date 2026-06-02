@@ -3,8 +3,8 @@ import { summarizePDFwithGemini } from "../services/aiService.js";
 import { markdownToPDFBuffer } from "../services/pdfService.js";
 import { saveFile, getAllFiles, getFileById, getFileByName } from "../repositories/fileRepository.js";
 import { uploadBufferToS3, uploadJsonToS3 } from "../services/s3Service.js";
-import axios from "axios";
 
+import {filePythonRouter} from "../routers/Python/fileToPython.js"
 export const uploadFile = async (req, res) => {
   try {
     const docBuffer = req.file.buffer;
@@ -26,33 +26,14 @@ export const uploadFile = async (req, res) => {
 
     // 2. Build form and forward to Python — collect full response (no streaming)
     const fileBlob = new Blob([docBuffer], { type: mimeType });
-    const form = new FormData();
-    form.append("file", fileBlob, req.file.originalname);
-
-    const FASTAPI_URL = "http://127.0.0.1:8000";
-    console.log(`Forwarding ${req.file.originalname} to Python...`);
-
-    let fullJsonlData = "";
-    try {
-      const pythonResponse = await axios.post(`${FASTAPI_URL}/upload-pdf`, form);
-      fullJsonlData =
-        typeof pythonResponse.data === "string"
-          ? pythonResponse.data
-          : JSON.stringify(pythonResponse.data);
-      console.log("✅ Python processing complete. JSONL data received.");
-    } catch (error) {
-      console.error("❌ Error forwarding to Python:", error.message);
-      return res.status(500).json({ error: "Failed to process PDF" });
-    }
-
-    // 3. Upload raw JSONL to Supabase
-    const jsonBuffer = Buffer.from(fullJsonlData, "utf-8");
+    const pdfToJson = await filePythonRouter(fileBlob, req.file.originalname)
+    
     const originalName = req.file.originalname.replace(/\.[^/.]+$/, "");
     const s3FileName = `processed_json/${originalName}_${Date.now()}_chunks.jsonl`;
-    await uploadJsonToS3(jsonBuffer, s3FileName);
+    await uploadJsonToS3(pdfToJson, s3FileName);
 
     // 4. Summarize, convert to PDF, upload summary to Supabase
-    const summary = await summarizePDFwithGemini(jsonBuffer);
+    const summary = await summarizePDFwithGemini(pdfToJson);
     console.log('summary type:', typeof summary);
 console.log('summary length:', summary?.length);
 console.log('summary preview:', summary?.slice(0, 200)); 
