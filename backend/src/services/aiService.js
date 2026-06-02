@@ -1,242 +1,412 @@
-import { GoogleGenAI, createPartFromUri } from "@google/genai";
-import { Blob } from 'buffer';
-import * as fs from 'fs/promises'; 
-import {GEMINI_API_KEY} from '../config/serverConfig.js';
+import { GoogleGenAI } from "@google/genai";
+import * as fs from 'fs/promises';
+import { GEMINI_API_KEY } from '../config/serverConfig.js';
 
+// ─────────────────────────────────────────────────────────────────────────────
+// CONFIG
+// ─────────────────────────────────────────────────────────────────────────────
+const MODEL_NAME        = 'gemini-2.5-flash';
+const MAX_RETRIES       = 6;
+const INITIAL_DELAY_MS  = 5000;
+const MAX_OUTPUT_TOKENS = 65536;
+const SEP               = '─'.repeat(54);
 
-const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
+const FREE_TIER_TOKEN_LIMIT = 220_000;
 
+// ─────────────────────────────────────────────────────────────────────────────
+// SYSTEM PROMPT
+// ─────────────────────────────────────────────────────────────────────────────
+const generateSystemInstruction = (companyName, reportType, year) => `
+You are an automated, experienced equity research analyst.
+You will receive the full extracted text of a ${reportType} of a publicly listed Indian company (${companyName}).
+Generate a neutral, factual, highly structured Markdown summary for year ${year}.
 
-const MODEL_NAME = 'gemini-3.1-pro-preview'; 
-const MAX_RETRIES = 5; 
-const INITIAL_DELAY_MS = 2000; 
-
-//prompt
-const systemInstruction = `***
-
-### Prompt Template
-
-*Heading:*
-
-Company Name_Report Type (Annual Report/DRHP/Concall)_Year of Publication
-
-***
-
-You are an automated, experienced equity research analyst. You will receive the PDF of an Annual Report, DRHP, or Concall of a publicly listed Indian company. Your task is to generate a neutral, factual, and highly structured summary in Markdown without introductory filler. Focus on investor clarity and deep understanding.
-
-Your summary must strictly follow the structure below. Each section should be treated as one distinct page (maximum length: ~15 pages for each section). Use only information from the report; if something is not available, write “Not Disclosed in Report.” Do not present any information in unstructured format. The tone must be neutral, simple, and explanatory; avoid promotional, judgmental, or advisory language.
-
-#### [SECTION ORDER—EXACTLY AS LISTED]
-
-***
+Strictly follow this section order. Write "Not Disclosed in Report." if a section has no data.
 
 ## Business Snapshot & Model
+- Concise description of the company's core business (5–10 sentences).
+- Main products, services, and customer segments in a Markdown table.
+- Value chain if available.
+- Revenue breakdown by segment and geography.
+- Core revenue streams, key raw materials, suppliers, distribution channels, cost drivers.
+- Structural changes if any (mergers, acquisitions, divestments).
 
-- Provide a concise description of the company’s core business in 5–10 sentences.
-- List main products, services, and customer segments in a structured Markdown table.
-- Detail the value chain if available.
-- Report revenue breakdown by business segment and geography.
-- List core revenue streams.
-- State key raw materials, suppliers, distribution channels, and major cost drivers.
-- Note structural changes if any (mergers, acquisitions, divestments).
-
-## Chairman/Managing Director’s Letter
-
-- Summarize the overall tone (Optimistic, Cautious, etc.).
-- Include direct quotes from the chairman or MD.
-- List key achievements from the past year.
-- Present strategic priorities in direct quotes or summary.
-- Highlight main challenges or headwinds mentioned by management.
+## Chairman/Managing Director's Letter
+- Overall tone (Optimistic / Cautious / etc.).
+- Direct quotes from the chairman or MD.
+- Key achievements from the past year.
+- Strategic priorities in direct quotes or summary.
+- Main challenges or headwinds mentioned.
 
 ## Industry & Macro Overview
-
-- Summarize the industry environment and demand drivers.
-- Present key challenges and company’s industry positioning (only factual disclosures).
+- Industry environment and demand drivers.
+- Key challenges and company's industry positioning (factual disclosures only).
 
 ## Financial Statement Analysis (Consolidated)
-
-- State whether the company has subsidiaries.
-- Present a Markdown table with columns for each year as reported (no extrapolation).
-- Table rows must include:
-  - Revenue from Operations
-  - EBITDA
-  - Net Profit (PAT)
-  - Basic EPS
-  - EBITDA Margin %
-  - Net Profit Margin %
-  - ROE %
-  - ROCE %
-  - Debt-to-Equity Ratio
-- 3–4 neutral sentences summarizing main revenue, margin, debt drivers.
+- Whether the company has subsidiaries.
+- Markdown table with columns for each reported year:
+  Revenue from Operations | EBITDA | Net Profit (PAT) | Basic EPS |
+  EBITDA Margin % | Net Profit Margin % | ROE % | ROCE % | Debt-to-Equity Ratio
+- 3–4 neutral sentences summarizing revenue, margin, and debt drivers.
 
 ## Financial Statement Analysis (Standalone)
-
 - Repeat above for standalone results if applicable.
 - 3–4 neutral sentences comparing standalone to consolidated.
 
 ## Segment & Geography Performance
-
-- Segment-wise: Use stacked bar chart for revenue, EBIT/EBITDA, margins %, % of total revenue, represented in Markdown tables.
-- Geography-wise: Pie chart or bar chart format in Markdown for region-wise revenue, % total.
+- Segment-wise Markdown table: revenue, EBIT/EBITDA, margins %, % of total revenue.
+- Geography-wise Markdown table: region-wise revenue, % total.
 
 ## Shareholding Pattern
-
-- Pie chart or Markdown table showing promoter, institutional (mutual funds, FIIs), retail/public holding %.
-- Note any significant changes during the year.
+- Markdown table: promoter, institutional (MFs, FIIs), retail/public holding %.
+- Note significant changes during the year.
 
 ## Capital Allocation, Dividend & Cash Flow
-
-- Table/line chart for capex, dividends, payout ratio, equity actions, debt levels, and cash flow summary (CFO, CFI, CFF), mark source and usage.
-- Quick check: is CFO > Net Profit or vice versa?
-- Bulleted takeaways about cash generation, deployment, debt/equity changes.
+- Table: capex, dividends, payout ratio, equity actions, debt levels, CFO/CFI/CFF.
+- Is CFO > Net Profit?
+- Bulleted takeaways: cash generation, deployment, debt/equity changes.
 
 ## Management Discussion & Analysis Snapshot
-
-- Summarize management’s operational review, KPIs, demand/outlook, strategic initiatives.
+- Operational review, KPIs, demand/outlook, strategic initiatives.
 
 ## Governance & Management Snapshot
+- Markdown table: directors (total, independent), key leadership (name, position, education, experience).
+- Key appointments/resignations, board committees.
 
-- Markdown table listing directors (total, independent), key leadership (full name, position, education, experience in years)—if education/experience not in report, find and include from Google.
-- Note key appointments/resignations, board committees.
-
-## Auditor’s Report
-
-- Name of auditing firm.
-- Audit opinion, factual reasoning (if qualified).
-- Summarize emphasis of matters.
+## Auditor's Report
+- Name of auditing firm, audit opinion, factual reasoning if qualified.
+- Emphasis of matters.
 
 ## Risks & Other Material Disclosures
-
-- List and categorize risk factors with direct clarity.
-- Note contingent liabilities, regulatory actions, share pledging, and ESG/CSR matters.
+- Categorized risk factors.
+- Contingent liabilities, regulatory actions, share pledging.
 
 ## ESG & CSR Highlights
+- CSR spend, focus areas, environmental initiatives, governance/ethics disclosures.
+- Use Markdown tables or bullets for clarity.
 
-- Present CSR spend, focus areas, environmental initiatives, governance/ethics disclosures.
-- Use Markdown tables or bullet points wherever best for clarity.
+Rules:
+- Never start with "Here is the summary" or any preamble.
+- All tabular data must be Markdown tables.
+- Output must be neutral — no investment advice or recommendations.
+- Be thorough — include every data point. Do NOT truncate or stop early.
+`.trim();
 
-##### Additional instructions:
+// ─────────────────────────────────────────────────────────────────────────────
+// STEP 1 — Parse JSONL/JSON buffer → clean text, trimmed to token budget
+// ─────────────────────────────────────────────────────────────────────────────
+const extractCleanText = (jsonBuffer, tokenLimit = FREE_TIER_TOKEN_LIMIT) => {
+    const raw     = Buffer.isBuffer(jsonBuffer) ? jsonBuffer.toString('utf8') : String(jsonBuffer);
+    const trimmed = raw.trim();
 
-- Never repeat explanations or start with “Here is the summary.”
-- Maintain strict section order and explicit Markdown formatting.
-- All charts must be represented as structured Markdown tables (e.g., "| Year | Metric | Value (%) |") or described as pie/stacked bar, not images.
-- Output must be neutral—no investment advice, recommendations, or judgmental language.
+    let records = [];
 
-temperature = 0.1
+    if (trimmed.startsWith('[')) {
+        try { records = JSON.parse(trimmed); } catch (_) {}
+    }
+    if (records.length === 0 && trimmed.includes('\n')) {
+        const lines = trimmed.split('\n').map(l => l.trim()).filter(l => l.startsWith('{'));
+        try { records = lines.map(l => JSON.parse(l)); } catch (_) {}
+    }
+    if (records.length === 0) {
+        try { records = [JSON.parse(trimmed)]; } catch (_) {}
+    }
+    if (records.length === 0) throw new Error('Could not parse any records from input buffer.');
 
-***`;
+    const chunks = records
+        .map(r => (r.text || r.content || '').trim())
+        .filter(Boolean);
 
+    const beforeKB  = Math.round(raw.length / 1024);
+    const rawText   = chunks.join('\n\n');
+    let   estTokens = Math.ceil(rawText.length / 4);
 
-export async function summarizePDFwithGemini(buffer) {
-    let file = null; 
-    
+    console.log(`🧹 Stripped to text only`);
+    console.log(`   Records parsed   : ${records.length} chunks`);
+    console.log(`   Before stripping : ${beforeKB} KB  (full JSON with all fields)`);
+    console.log(`   Raw text size    : ${Math.round(rawText.length / 1024)} KB`);
+    console.log(`   Est. tokens      : ~${estTokens.toLocaleString()}`);
+
+    let finalText = rawText;
+    if (estTokens > tokenLimit) {
+        estTokens = Math.ceil(finalText.length / 4);
+        console.log(`   ✂️  Pass 1 (no headers): ~${estTokens.toLocaleString()} tokens`);
+    }
+
+    if (estTokens > tokenLimit) {
+        const seen    = new Set();
+        const deduped = finalText
+            .split('\n')
+            .filter(line => {
+                const norm = line.trim().toLowerCase();
+                if (norm.length < 20) return true;
+                if (seen.has(norm))   return false;
+                seen.add(norm);
+                return true;
+            })
+            .join('\n');
+        finalText = deduped;
+        estTokens = Math.ceil(finalText.length / 4);
+        console.log(`   ✂️  Pass 2 (dedup lines): ~${estTokens.toLocaleString()} tokens`);
+    }
+
+    if (estTokens > tokenLimit) {
+        const maxChars = tokenLimit * 4;
+        finalText      = finalText.slice(0, maxChars);
+        estTokens      = Math.ceil(finalText.length / 4);
+        console.warn(`   ⚠️  Pass 3 (hard truncate): trimmed to ~${estTokens.toLocaleString()} tokens`);
+        console.warn(`       Some content at the end of the report was dropped.`);
+        console.warn(`       To avoid this: upgrade to paid Gemini tier (no 250K limit).`);
+    }
+
+    const afterKB = Math.round(finalText.length / 1024);
+    console.log(`   Final text size  : ${afterKB} KB (~${estTokens.toLocaleString()} tokens)`);
+
+    return { fullText: finalText, recordCount: records.length, beforeKB, afterKB, estTokens };
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STEP 2 — Live ticker + hard timeout
+// ─────────────────────────────────────────────────────────────────────────────
+const withTicker = (promise, label, timeoutMs = 15 * 60 * 1000) => {
+    let ticker;
+    const guard = new Promise((_, reject) => {
+        const start = Date.now();
+        ticker = setInterval(() => {
+            const s = Math.round((Date.now() - start) / 1000);
+            process.stdout.write(`\r   ⏱  ${label} ... ${s}s elapsed`);
+        }, 5000);
+        setTimeout(() => {
+            clearInterval(ticker);
+            process.stdout.write('\n');
+            reject(new Error(`${label} timed out after ${timeoutMs / 60000} min`));
+        }, timeoutMs);
+    });
+    return Promise.race([
+        promise.then(r => { clearInterval(ticker); process.stdout.write('\n'); return r; }),
+        guard,
+    ]);
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STEP 3 — Parse retry delay from 429 error body
+// ─────────────────────────────────────────────────────────────────────────────
+const parseRetryDelayMs = (err, fallback = 60000) => {
     try {
-        const fileBlob = new Blob([buffer], { type: 'application/pdf' });
-        console.log(`Uploading file of size ${buffer.length} bytes...`);
-        
-        file = await ai.files.upload({
-            file: fileBlob,
-            displayName: 'annual_report_for_summary',
-        });
-        
-        let getFile = await ai.files.get({ name: file.name });
-        let attempts = 0;
-        const maxProcessingAttempts = 20; 
-
-        while (getFile.state === 'PROCESSING' && attempts < maxProcessingAttempts) {
-            getFile = await ai.files.get({ name: file.name });
-            console.log(`Current file status: ${getFile.state}. Waiting...`);
-            await new Promise((resolve) => setTimeout(resolve, 5000));
-            attempts++;
-        }
-
-        if (getFile.state === 'FAILED' || attempts === maxProcessingAttempts) {
-            await ai.files.delete({ name: file.name });
-            const errorMsg = getFile.state === 'FAILED' 
-                ? `File processing failed. Status: ${getFile.state}` 
-                : 'File processing timed out after 100 seconds.';
-            throw new Error(errorMsg);
-        }
-
-        const content = [];
-        if (file.uri && file.mimeType) {
-            const fileContent = createPartFromUri(file.uri, file.mimeType);
-            content.push(fileContent);
-        }
-        content.push({ text: "Generate the full structured Annual Report summary based on the attached PDF, strictly following the system instruction." });
-        
-        // retry if fails
-        let response = null;
-        let delay = INITIAL_DELAY_MS;
-
-        for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-            try {
-                console.log(`Attempt ${attempt} of ${MAX_RETRIES} to generate content using ${MODEL_NAME}.`);
-
-                response = await ai.models.generateContent({
-                    model: MODEL_NAME, 
-                    contents: content,
-                    config: {
-                        maxOutputTokens: 30000, 
-                        temperature: 0.1,
-                        systemInstruction: systemInstruction,
-                        stopSequences: [], 
-                        safetySettings: [ 
-                            { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
-                            { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
-                            { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
-                            { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
-                        ],
-                    },
-                });
-
-                console.log("Content generation successful.");
-                break; 
-
-            } catch (err) {
-                if (err.message.includes("503") || err.message.includes("overloaded") || err.message.includes("500")) {
-                    if (attempt < MAX_RETRIES) {
-                        console.warn(`Model unavailable (5xx). Retrying in ${delay / 1000}s...`);
-                        await new Promise(resolve => setTimeout(resolve, delay));
-                        delay *= 2; 
-                    } else {
-                        throw new Error(`Model remains unavailable after ${MAX_RETRIES} attempts. Last error: ${err.message}`);
-                    }
-                } else {
-                    throw err; 
-                }
+        const start = err.message.indexOf('{');
+        if (start === -1) return fallback;
+        const parsed = JSON.parse(err.message.slice(start));
+        for (const d of (parsed?.error?.details || [])) {
+            if (d['@type']?.includes('RetryInfo') && d.retryDelay) {
+                const s = parseFloat(d.retryDelay);
+                if (!isNaN(s)) return Math.ceil(s * 1000) + 5000;
             }
         }
-        
-        if (!response) {
-             throw new Error("Failed to get a valid response after all retries.");
+    } catch (_) {}
+    return fallback;
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STEP 4 — Single Gemini call with retry
+// ─────────────────────────────────────────────────────────────────────────────
+const callGeminiWithRetry = async (ai, modelName, contents, config, maxRetries = MAX_RETRIES) => {
+    let delay = INITIAL_DELAY_MS;
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            console.log(`🚀 Attempt ${attempt}/${maxRetries} — calling ${modelName}...`);
+            const call     = ai.models.generateContent({ model: modelName, contents, config });
+            const response = await withTicker(call, `Attempt ${attempt}/${maxRetries}`);
+            console.log(`   ✅ Response received.`);
+            return response;
+        } catch (err) {
+            const is429     = err.message.includes("429") || err.message.includes("RESOURCE_EXHAUSTED");
+            const is5xx     = err.message.includes("503") || err.message.includes("500") || err.message.includes("overloaded");
+            const isTimeout = err.message.includes('timed out');
+
+            if ((is429 || is5xx || isTimeout) && attempt < maxRetries) {
+                const waitMs = is429
+                    ? parseRetryDelayMs(err, 60000)
+                    : isTimeout ? 10000
+                    : Math.min(delay * 2, 60000);
+                console.warn(`   ⚠️  Attempt ${attempt}/${maxRetries} — ${is429 ? '429 quota' : is5xx ? '5xx error' : 'timeout'}. Waiting ${(waitMs / 1000).toFixed(0)}s...`);
+                await new Promise(r => setTimeout(r, waitMs));
+                delay = Math.min(delay * 2, 60000);
+            } else if (attempt >= maxRetries) {
+                throw new Error(`All ${maxRetries} attempts failed. Last: ${err.message}`);
+            } else {
+                throw err;
+            }
         }
-        
-       
-        const outputFileName = 'annual_report_summary.md';
-        await fs.writeFile(outputFileName, response.text);
-        
+    }
+    throw new Error('No response received after all retries.');
+};
 
-        await ai.files.delete({ name: file.name });
+// ─────────────────────────────────────────────────────────────────────────────
+// STEP 5 — Extract text safely from Gemini response
+// ─────────────────────────────────────────────────────────────────────────────
+const extractTextFromResponse = (response) => {
+    const candidate    = response?.candidates?.[0];
+    const finishReason = candidate?.finishReason ?? 'UNKNOWN';
+    const parts        = candidate?.content?.parts ?? [];
+    const text         = parts
+        .filter(p => typeof p.text === 'string' && !p.thought)
+        .map(p => p.text)
+        .join('');
+    return { text, finishReason, parts };
+};
 
-        console.log("------------------------------------------------");
-        console.log(`SUCCESS! Summary written to: ${outputFileName}`);
-        console.log(`Model Finish Reason: ${response.candidates[0].finishReason}`);
-        console.log("------------------------------------------------");
-        
-        return response.text;
+// ─────────────────────────────────────────────────────────────────────────────
+// MAIN
+// ─────────────────────────────────────────────────────────────────────────────
+export async function summarizePDFwithGemini(jsonBuffer, options = {}) {
+    const apiKey          = options.apiKey          || GEMINI_API_KEY;
+    const modelName       = options.modelName       || MODEL_NAME;
+    const outputFileName  = options.outputFileName  || `summary_${Date.now()}.md`;
+    const companyName     = options.companyName     || 'the Company';
+    const reportType      = options.reportType      || 'Annual Report';
+    const year            = options.year            || 'Current Year';
+    const maxOutputTokens = options.maxOutputTokens || MAX_OUTPUT_TOKENS;
+    const tokenLimit      = options.tokenLimit      || FREE_TIER_TOKEN_LIMIT;
+
+    const ai                = new GoogleGenAI({ apiKey });
+    const systemInstruction = generateSystemInstruction(companyName, reportType, year);
+
+    console.log(`\n${SEP}`);
+    console.log(`🤖 Model         : ${modelName}`);
+    console.log(`📤 Max out tokens: ${maxOutputTokens.toLocaleString()}`);
+    console.log(`🎯 Token budget  : ${tokenLimit.toLocaleString()} (free tier safe limit)`);
+
+    try {
+        // ── 1. Strip + trim to token budget ──────────────────────
+        const { fullText, recordCount, beforeKB, afterKB, estTokens } = extractCleanText(jsonBuffer, tokenLimit);
+        console.log(`${SEP}\n`);
+
+        // ── 2. Gemini config ──────────────────────────────────────
+        const geminiConfig = {
+            maxOutputTokens,
+            temperature    : 0.1,
+            systemInstruction,
+            thinkingConfig : { thinkingBudget: 0 },
+            safetySettings : [
+                { category: "HARM_CATEGORY_HARASSMENT",        threshold: "BLOCK_NONE" },
+                { category: "HARM_CATEGORY_HATE_SPEECH",        threshold: "BLOCK_NONE" },
+                { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",  threshold: "BLOCK_NONE" },
+                { category: "HARM_CATEGORY_DANGEROUS_CONTENT",  threshold: "BLOCK_NONE" },
+            ],
+        };
+
+        // ── 3. Decide: single call or chunked ────────────────────
+        // If the expected output would overflow MAX_OUTPUT_TOKENS (65536),
+        // we split the summary into two halves: sections 1–6 and sections 7–13.
+        // Each call gets the FULL document text so facts aren't lost.
+        const SECTIONS_PART_1 = [
+            'Business Snapshot & Model',
+            "Chairman/Managing Director's Letter",
+            'Industry & Macro Overview',
+            'Financial Statement Analysis (Consolidated)',
+            'Financial Statement Analysis (Standalone)',
+            'Segment & Geography Performance',
+        ];
+
+        const SECTIONS_PART_2 = [
+            'Shareholding Pattern',
+            'Capital Allocation, Dividend & Cash Flow',
+            'Management Discussion & Analysis Snapshot',
+            'Governance & Management Snapshot',
+            "Auditor's Report",
+            'Risks & Other Material Disclosures',
+            'ESG & CSR Highlights',
+        ];
+
+        const docPreamble = [
+            `The following is the full extracted text of a ${reportType} for ${companyName} (${year}).`,
+            `It contains ${recordCount} sections. Read everything thoroughly.`,
+            ``,
+            fullText,
+            ``,
+        ].join('\n');
+
+        const contentsP1 = [{
+            role : 'user',
+            parts: [{ text: docPreamble + [
+                `Now generate ONLY these sections (skip all others):`,
+                SECTIONS_PART_1.map(s => `- ${s}`).join('\n'),
+                ``,
+                `Follow the system instructions exactly. Be thorough. Do NOT stop early.`,
+            ].join('\n') }],
+        }];
+
+        const contentsP2 = [{
+            role : 'user',
+            parts: [{ text: docPreamble + [
+                `Now generate ONLY these sections (skip all others):`,
+                SECTIONS_PART_2.map(s => `- ${s}`).join('\n'),
+                ``,
+                `Follow the system instructions exactly. Be thorough. Do NOT stop early.`,
+            ].join('\n') }],
+        }];
+
+        // ── 4. Call Gemini (two passes) ───────────────────────────
+        console.log(`📋 Pass 1/2 — Generating: ${SECTIONS_PART_1.join(', ')}`);
+        const resp1             = await callGeminiWithRetry(ai, modelName, contentsP1, geminiConfig);
+        const { text: text1, finishReason: fr1 } = extractTextFromResponse(resp1);
+
+        if (!text1 || typeof text1 !== 'string' || !text1.trim()) {
+            throw new Error(`Pass 1 returned empty text. finishReason: ${fr1}`);
+        }
+        if (fr1 === 'MAX_TOKENS') {
+            console.warn(`   ⚠️  Pass 1 hit MAX_TOKENS — some sections may be cut short.`);
+        }
+        console.log(`   ✅ Pass 1 done. (${Math.round(text1.length / 1024)} KB, finish: ${fr1})`);
+
+        // Small cooldown between calls to avoid rate-limiting
+        await new Promise(r => setTimeout(r, 3000));
+
+        console.log(`📋 Pass 2/2 — Generating: ${SECTIONS_PART_2.join(', ')}`);
+        const resp2             = await callGeminiWithRetry(ai, modelName, contentsP2, geminiConfig);
+        const { text: text2, finishReason: fr2 } = extractTextFromResponse(resp2);
+
+        if (!text2 || typeof text2 !== 'string' || !text2.trim()) {
+            throw new Error(`Pass 2 returned empty text. finishReason: ${fr2}`);
+        }
+        if (fr2 === 'MAX_TOKENS') {
+            console.warn(`   ⚠️  Pass 2 hit MAX_TOKENS — some sections may be cut short.`);
+        }
+        console.log(`   ✅ Pass 2 done. (${Math.round(text2.length / 1024)} KB, finish: ${fr2})`);
+
+        // ── 5. Merge ──────────────────────────────────────────────
+        let summaryText = [text1.trim(), text2.trim()].join('\n\n');
+
+        // Guard: ensure we always have a valid string before any .replace() calls downstream
+        if (typeof summaryText !== 'string' || !summaryText.trim()) {
+            throw new Error('Merged summary is empty — both passes returned no usable text.');
+        }
+
+        if (fr1 === 'MAX_TOKENS' || fr2 === 'MAX_TOKENS') {
+            summaryText += '\n\n> **⚠️ Note:** This summary was truncated due to output token limits. Some sections may be incomplete.\n';
+        }
+
+        // ── 6. Save ───────────────────────────────────────────────
+        await fs.writeFile(outputFileName, summaryText);
+
+        const in1  = resp1?.usageMetadata?.promptTokenCount    ?? '?';
+        const out1 = resp1?.usageMetadata?.candidatesTokenCount ?? '?';
+        const in2  = resp2?.usageMetadata?.promptTokenCount    ?? '?';
+        const out2 = resp2?.usageMetadata?.candidatesTokenCount ?? '?';
+        const sizeKB = Math.round(summaryText.length / 1024);
+
+        console.log(`\n${SEP}`);
+        console.log(`🎉 SUCCESS → ${outputFileName}  (${sizeKB} KB)`);
+        console.log(`   Input  : ${beforeKB} KB JSON → ${afterKB} KB text sent`);
+        console.log(`   Pass 1 tokens in/out : ${in1} / ${out1}  (finish: ${fr1})`);
+        console.log(`   Pass 2 tokens in/out : ${in2} / ${out2}  (finish: ${fr2})`);
+        console.log(`   Both finish reasons must be STOP ↑`);
+        console.log(`${SEP}\n`);
+
+        return summaryText;   // ← always a string from here
 
     } catch (err) {
-       
-        if (file) {
-            try {
-                await ai.files.delete({ name: file.name });
-                console.log("Cleanup attempted after API failure.");
-            } catch (cleanupError) {
-                console.error("Failed to clean up file:", cleanupError.message);
-            }
-        }
-        console.error("Gemini API Error:", err.message);
-        throw new Error("Gemini summary generation failed");
+        console.error(`\n❌ FATAL: ${err.message}`);
+        throw new Error(`Gemini summary generation failed: ${err.message}`);
     }
 }

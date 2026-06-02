@@ -4,7 +4,7 @@ import {CLIENT_URI} from "./config/serverConfig.js"
 import { connectDB } from "./config/dbConfig.js";
 import fileRouter from "./routers/fileRouter.js";
 import screenerRouter from "./routers/screenerRouter.js"
-import pythonRoutes from "./routers/Python/testFile.js";
+import pythonRoutes from "./routers/testFile.js";
 import errorHandler from "./middlewares/errorHandler.js";
 import path from "path";
 import userRoutes from '../src/routers/userRouter.js'

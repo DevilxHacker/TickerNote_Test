@@ -1,4 +1,3 @@
-
 import fs from "fs";
 import puppeteer from "puppeteer";
 import { ChartJSNodeCanvas } from "chartjs-node-canvas";
@@ -9,6 +8,11 @@ import { markdownToHTML } from "../utilities/markdownUtil.js";
  */
 export async function markdownToPDFBuffer(markdownText) {
   try {
+    // Guard: ensure we always have a valid string
+    if (!markdownText || typeof markdownText !== "string") {
+      throw new Error(`markdownToPDFBuffer received invalid input: ${typeof markdownText}`);
+    }
+
     // === 1️⃣ Chart configuration ===
     const chartSections = {
       "Revenue Breakdown (Consolidated, in ₹ Cr)": { type: "bar" },
@@ -97,12 +101,7 @@ export async function markdownToPDFBuffer(markdownText) {
 
           const chartData = {
             labels: years,
-            datasets: [
-              {
-                label: row[0],
-                data: numericValues,
-              },
-            ],
+            datasets: [{ label: row[0], data: numericValues }],
           };
           charts.push(await generateChartImage("bar", chartData));
         }
@@ -112,18 +111,19 @@ export async function markdownToPDFBuffer(markdownText) {
       // 🟨 Shareholding Pattern (Pie)
       if (section.includes("Shareholding Pattern")) {
         const labels = rows.map(r => r[0]);
-        const data = rows.map(r => parseFloat(r[1].replace("%", "")) || 0);
-        const chartData = {
-          labels,
-          datasets: [{ data }],
-        };
+        const data = rows.map(r => parseFloat((r[1] ?? "").replace("%", "").replace(/,/g, "")) || 0);
+        const chartData = { labels, datasets: [{ data }] };
         return [await generateChartImage("pie", chartData)];
       }
 
       // 🟧 Capital Allocation, Dividend & Cash Flow
       if (section.includes("Capital Allocation")) {
         const years = headers.filter(h => /\d{4}/.test(h));
-        const selected = ["Cash Flow from Operations (CFO)", "Cash Flow from Investing (CFI)", "Cash Flow from Financing (CFF)"];
+        const selected = [
+          "Cash Flow from Operations (CFO)",
+          "Cash Flow from Investing (CFI)",
+          "Cash Flow from Financing (CFF)",
+        ];
         const filteredRows = rows.filter(r => selected.includes(r[0]));
 
         const datasets = filteredRows.map(row => ({
@@ -138,50 +138,99 @@ export async function markdownToPDFBuffer(markdownText) {
       return [];
     }
 
-    // Async replace helper
+    // === 3️⃣ Safe async replace helper ===
+    // FIX: The old version could insert `undefined` when results.shift() ran out.
+    // New version collects all matches first, resolves them, then does a single
+    // string rebuild — so the output is always a valid string.
     async function replaceAsync(str, regex, asyncFn) {
-      const matches = [];
-      str.replace(regex, (match, ...args) => {
-        matches.push(asyncFn(match, ...args));
-        return match;
-      });
-      const results = await Promise.all(matches);
-      return str.replace(regex, () => results.shift());
+      if (typeof str !== "string") return str; // safety guard
+
+      // Collect all match positions and replacement promises
+      const matchData = [];
+      let match;
+      const globalRegex = new RegExp(regex.source, regex.flags.includes("g") ? regex.flags : regex.flags + "g");
+
+      while ((match = globalRegex.exec(str)) !== null) {
+        matchData.push({
+          index: match.index,
+          length: match[0].length,
+          promise: asyncFn(match[0], ...match.slice(1)),
+        });
+        // Prevent infinite loop on zero-length matches
+        if (match[0].length === 0) globalRegex.lastIndex++;
+      }
+
+      if (matchData.length === 0) return str; // no matches → return original unchanged
+
+      // Resolve all replacements in parallel
+      const replacements = await Promise.all(matchData.map(m => m.promise));
+
+      // Rebuild string from right to left to preserve indices
+      let result = str;
+      for (let i = matchData.length - 1; i >= 0; i--) {
+        const { index, length } = matchData[i];
+        const replacement = typeof replacements[i] === "string" ? replacements[i] : str.slice(index, index + length);
+        result = result.slice(0, index) + replacement + result.slice(index + length);
+      }
+
+      return result;
     }
 
-    // === 3️⃣ Inject charts dynamically ===
+    // === 4️⃣ Inject charts dynamically ===
     for (const section in chartSections) {
       const sectionRegex = new RegExp(
         `(?:^|\\n)(?:##|###)\\s*${section}[\\s\\S]*?(\\|.*?\\|[\\s\\S]*?)(?=(?:\\n##|\\n###|$))`,
         "gi"
       );
 
-      markdownText = await replaceAsync(markdownText, sectionRegex, async (match, tableMarkdown) => {
-        const { headers, rows } = parseMarkdownTable(tableMarkdown);
-        if (!headers.length || !rows.length) return match;
+      const result = await replaceAsync(markdownText, sectionRegex, async (match, tableMarkdown) => {
+        try {
+          const { headers, rows } = parseMarkdownTable(tableMarkdown);
+          if (!headers.length || !rows.length) return match;
 
-        const charts = await generateSectionCharts(section, headers, rows);
-        if (!charts.length) return match;
+          const charts = await generateSectionCharts(section, headers, rows);
+          if (!charts.length) return match;
 
-        const imgTags = charts
-          .map(
-            base64 =>
-              `<img src="data:image/png;base64,${base64}" alt="${section} Chart" style="margin-top:15px;max-width:100%;border:1px solid #eee;border-radius:8px;"/>`
-          )
-          .join("\n");
+          const imgTags = charts
+            .map(
+              base64 =>
+                `<img src="data:image/png;base64,${base64}" alt="${section} Chart" style="margin-top:15px;max-width:100%;border:1px solid #eee;border-radius:8px;"/>`
+            )
+            .join("\n");
 
-        return `${match}\n\n${imgTags}\n`;
+          return `${match}\n\n${imgTags}\n`;
+        } catch (chartErr) {
+          // If chart generation fails for any section, log and return original match
+          console.warn(`⚠️  Chart generation skipped for "${section}": ${chartErr.message}`);
+          return match;
+        }
       });
+
+      // Guard: only update markdownText if result is a valid non-empty string
+      if (typeof result === "string" && result.trim()) {
+        markdownText = result;
+      } else {
+        console.warn(`⚠️  replaceAsync returned invalid result for section "${section}", keeping original.`);
+      }
     }
 
-    // === 4️⃣ Convert Markdown → HTML ===
+    // Guard before HTML conversion
+    if (!markdownText || typeof markdownText !== "string") {
+      throw new Error("markdownText became invalid after chart injection.");
+    }
+
+    // === 5️⃣ Convert Markdown → HTML ===
     const htmlContent = markdownToHTML(markdownText);
 
-    // === 5️⃣ Load logos ===
-    const logoBase64 = fs.readFileSync("logo.svg", "base64");
-    const logoFooter = fs.readFileSync("footer-logo.svg", "base64");
+    if (!htmlContent || typeof htmlContent !== "string") {
+      throw new Error(`markdownToHTML returned invalid output: ${typeof htmlContent}`);
+    }
 
-    // === 6️⃣ Full HTML Template ===
+    // === 6️⃣ Load logos ===
+    const logoBase64   = fs.readFileSync("logo.svg",        "base64");
+    const logoFooter   = fs.readFileSync("footer-logo.svg", "base64");
+
+    // === 7️⃣ Full HTML Template ===
     const html = `
 <html>
   <head>
@@ -243,7 +292,7 @@ export async function markdownToPDFBuffer(markdownText) {
   </body>
 </html>`;
 
-    // === 7️⃣ Generate PDF with Puppeteer ===
+    // === 8️⃣ Generate PDF with Puppeteer ===
     const browser = await puppeteer.launch({
       args: ["--no-sandbox", "--disable-setuid-sandbox"],
       headless: true,
@@ -275,4 +324,3 @@ export async function markdownToPDFBuffer(markdownText) {
     throw new Error("PDF generation failed");
   }
 }
-36996

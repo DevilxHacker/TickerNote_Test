@@ -19,8 +19,7 @@ function App() {
     <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
       <Routes>
         {/* Public routes */}
-        <Route path="/
-        " element={<PythonConnectionTest />} />
+        <Route path="/pythonTest" element={<PythonConnectionTest />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
