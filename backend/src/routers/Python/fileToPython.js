@@ -1,9 +1,10 @@
 import axios from 'axios';
+import { PYTHON_API_URL } from '../../config/serverConfig.js';
 export async function filePythonRouter(blob, name) {
   const form = new FormData();
   form.append("file", blob, name);
 
-  const FASTAPI_URL = "http://127.0.0.1:8000";
+  const FASTAPI_URL = PYTHON_API_URL ||  "http://127.0.0.1:8000";
   console.log(`Forwarding ${name} to Python...`);
 
   try {
