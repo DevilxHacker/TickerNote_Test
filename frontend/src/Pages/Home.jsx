@@ -17,7 +17,7 @@ function Home() {
           Summarizer
         </button>
 
-        <button
+        <button disabled
           onClick={() => navigate("/screener")}
           className="w-full py-4 text-lg font-semibold text-white transition duration-300 bg-green-500 shadow-md rounded-2xl hover:bg-green-600"
         >

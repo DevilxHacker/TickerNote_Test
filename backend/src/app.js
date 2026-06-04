@@ -3,8 +3,8 @@ import cors from "cors";
 import {CLIENT_URI} from "./config/serverConfig.js"
 import { connectDB } from "./config/dbConfig.js";
 import fileRouter from "./routers/fileRouter.js";
-import screenerRouter from "./routers/screenerRouter.js"
 import pythonRoutes from "./routers/testFile.js";
+import chatRouter from "./routers/chatRouter.js";
 import errorHandler from "./middlewares/errorHandler.js";
 import path from "path";
 import userRoutes from '../src/routers/userRouter.js'
@@ -23,9 +23,9 @@ app.use(express.json());
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 app.use("/file", fileRouter);
-app.use("/screener", screenerRouter)
 app.use('/api/users', userRoutes);
 app.use("/python", pythonRoutes);
+app.use("/chat", chatRouter);
 app.use(errorHandler);
 // app.use("/chat", chatrouter);
 

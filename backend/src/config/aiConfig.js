@@ -5,7 +5,7 @@ export const ai = new GoogleGenAI({
   apiKey: GEMINI_API_KEY,
 });
 
-// Define the grounding tool
+// for google search
 export const groundingTool = {
   googleSearch: {},
 };

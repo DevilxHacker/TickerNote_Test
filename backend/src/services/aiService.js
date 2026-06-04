@@ -2,20 +2,16 @@ import { GoogleGenAI } from "@google/genai";
 import * as fs from 'fs/promises';
 import { GEMINI_API_KEY } from '../config/serverConfig.js';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// CONFIG
-// ─────────────────────────────────────────────────────────────────────────────
+
+// Configuration
 const MODEL_NAME        = 'gemini-2.5-flash';
 const MAX_RETRIES       = 6;
 const INITIAL_DELAY_MS  = 5000;
 const MAX_OUTPUT_TOKENS = 65536;
 const SEP               = '─'.repeat(54);
-
 const FREE_TIER_TOKEN_LIMIT = 220_000;
 
-// ─────────────────────────────────────────────────────────────────────────────
-// SYSTEM PROMPT
-// ─────────────────────────────────────────────────────────────────────────────
+
 const generateSystemInstruction = (companyName, reportType, year) => `
 You are an automated, experienced equity research analyst.
 You will receive the full extracted text of a ${reportType} of a publicly listed Indian company (${companyName}).
@@ -92,9 +88,7 @@ Rules:
 - Be thorough — include every data point. Do NOT truncate or stop early.
 `.trim();
 
-// ─────────────────────────────────────────────────────────────────────────────
-// STEP 1 — Parse JSONL/JSON buffer → clean text, trimmed to token budget
-// ─────────────────────────────────────────────────────────────────────────────
+//extract clean text from json
 const extractCleanText = (jsonBuffer, tokenLimit = FREE_TIER_TOKEN_LIMIT) => {
     const raw     = Buffer.isBuffer(jsonBuffer) ? jsonBuffer.toString('utf8') : String(jsonBuffer);
     const trimmed = raw.trim();
@@ -121,16 +115,12 @@ const extractCleanText = (jsonBuffer, tokenLimit = FREE_TIER_TOKEN_LIMIT) => {
     const rawText   = chunks.join('\n\n');
     let   estTokens = Math.ceil(rawText.length / 4);
 
-    console.log(`🧹 Stripped to text only`);
-    console.log(`   Records parsed   : ${records.length} chunks`);
-    console.log(`   Before stripping : ${beforeKB} KB  (full JSON with all fields)`);
-    console.log(`   Raw text size    : ${Math.round(rawText.length / 1024)} KB`);
-    console.log(`   Est. tokens      : ~${estTokens.toLocaleString()}`);
+
 
     let finalText = rawText;
     if (estTokens > tokenLimit) {
         estTokens = Math.ceil(finalText.length / 4);
-        console.log(`   ✂️  Pass 1 (no headers): ~${estTokens.toLocaleString()} tokens`);
+        console.log(`Pass 1 (no headers): ~${estTokens.toLocaleString()} tokens`);
     }
 
     if (estTokens > tokenLimit) {
@@ -147,16 +137,15 @@ const extractCleanText = (jsonBuffer, tokenLimit = FREE_TIER_TOKEN_LIMIT) => {
             .join('\n');
         finalText = deduped;
         estTokens = Math.ceil(finalText.length / 4);
-        console.log(`   ✂️  Pass 2 (dedup lines): ~${estTokens.toLocaleString()} tokens`);
+        console.log(`Pass 2 (dedup lines): ~${estTokens.toLocaleString()} tokens`);
     }
 
     if (estTokens > tokenLimit) {
         const maxChars = tokenLimit * 4;
         finalText      = finalText.slice(0, maxChars);
         estTokens      = Math.ceil(finalText.length / 4);
-        console.warn(`   ⚠️  Pass 3 (hard truncate): trimmed to ~${estTokens.toLocaleString()} tokens`);
-        console.warn(`       Some content at the end of the report was dropped.`);
-        console.warn(`       To avoid this: upgrade to paid Gemini tier (no 250K limit).`);
+        console.warn(` Pass 3 (hard truncate): trimmed to ~${estTokens.toLocaleString()} tokens`);
+        console.warn(`Some content at the end of the report was dropped.`);
     }
 
     const afterKB = Math.round(finalText.length / 1024);
@@ -165,9 +154,7 @@ const extractCleanText = (jsonBuffer, tokenLimit = FREE_TIER_TOKEN_LIMIT) => {
     return { fullText: finalText, recordCount: records.length, beforeKB, afterKB, estTokens };
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// STEP 2 — Live ticker + hard timeout
-// ─────────────────────────────────────────────────────────────────────────────
+//live timer
 const withTicker = (promise, label, timeoutMs = 15 * 60 * 1000) => {
     let ticker;
     const guard = new Promise((_, reject) => {
@@ -188,9 +175,7 @@ const withTicker = (promise, label, timeoutMs = 15 * 60 * 1000) => {
     ]);
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// STEP 3 — Parse retry delay from 429 error body
-// ─────────────────────────────────────────────────────────────────────────────
+// Parse retry delay from 429 error body
 const parseRetryDelayMs = (err, fallback = 60000) => {
     try {
         const start = err.message.indexOf('{');
@@ -213,10 +198,10 @@ const callGeminiWithRetry = async (ai, modelName, contents, config, maxRetries =
     let delay = INITIAL_DELAY_MS;
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
-            console.log(`🚀 Attempt ${attempt}/${maxRetries} — calling ${modelName}...`);
+            console.log(` Attempt ${attempt}/${maxRetries} — calling ${modelName}...`);
             const call     = ai.models.generateContent({ model: modelName, contents, config });
             const response = await withTicker(call, `Attempt ${attempt}/${maxRetries}`);
-            console.log(`   ✅ Response received.`);
+            console.log(`Response received.`);
             return response;
         } catch (err) {
             const is429     = err.message.includes("429") || err.message.includes("RESOURCE_EXHAUSTED");
@@ -228,7 +213,7 @@ const callGeminiWithRetry = async (ai, modelName, contents, config, maxRetries =
                     ? parseRetryDelayMs(err, 60000)
                     : isTimeout ? 10000
                     : Math.min(delay * 2, 60000);
-                console.warn(`   ⚠️  Attempt ${attempt}/${maxRetries} — ${is429 ? '429 quota' : is5xx ? '5xx error' : 'timeout'}. Waiting ${(waitMs / 1000).toFixed(0)}s...`);
+                console.warn(`Attempt ${attempt}/${maxRetries} — ${is429 ? '429 quota' : is5xx ? '5xx error' : 'timeout'}. Waiting ${(waitMs / 1000).toFixed(0)}s...`);
                 await new Promise(r => setTimeout(r, waitMs));
                 delay = Math.min(delay * 2, 60000);
             } else if (attempt >= maxRetries) {
@@ -241,9 +226,7 @@ const callGeminiWithRetry = async (ai, modelName, contents, config, maxRetries =
     throw new Error('No response received after all retries.');
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// STEP 5 — Extract text safely from Gemini response
-// ─────────────────────────────────────────────────────────────────────────────
+//extracting from gemini
 const extractTextFromResponse = (response) => {
     const candidate    = response?.candidates?.[0];
     const finishReason = candidate?.finishReason ?? 'UNKNOWN';
@@ -255,9 +238,7 @@ const extractTextFromResponse = (response) => {
     return { text, finishReason, parts };
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
 // MAIN
-// ─────────────────────────────────────────────────────────────────────────────
 export async function summarizePDFwithGemini(jsonBuffer, options = {}) {
     const apiKey          = options.apiKey          || GEMINI_API_KEY;
     const modelName       = options.modelName       || MODEL_NAME;
@@ -272,9 +253,9 @@ export async function summarizePDFwithGemini(jsonBuffer, options = {}) {
     const systemInstruction = generateSystemInstruction(companyName, reportType, year);
 
     console.log(`\n${SEP}`);
-    console.log(`🤖 Model         : ${modelName}`);
-    console.log(`📤 Max out tokens: ${maxOutputTokens.toLocaleString()}`);
-    console.log(`🎯 Token budget  : ${tokenLimit.toLocaleString()} (free tier safe limit)`);
+    console.log(`Model         : ${modelName}`);
+    console.log(` Max out tokens: ${maxOutputTokens.toLocaleString()}`);
+    console.log(`Token budget  : ${tokenLimit.toLocaleString()} (free tier safe limit)`);
 
     try {
         // ── 1. Strip + trim to token budget ──────────────────────
@@ -347,7 +328,7 @@ export async function summarizePDFwithGemini(jsonBuffer, options = {}) {
         }];
 
         // ── 4. Call Gemini (two passes) ───────────────────────────
-        console.log(`📋 Pass 1/2 — Generating: ${SECTIONS_PART_1.join(', ')}`);
+        console.log(`Pass 1/2 — Generating: ${SECTIONS_PART_1.join(', ')}`);
         const resp1             = await callGeminiWithRetry(ai, modelName, contentsP1, geminiConfig);
         const { text: text1, finishReason: fr1 } = extractTextFromResponse(resp1);
 
@@ -355,14 +336,14 @@ export async function summarizePDFwithGemini(jsonBuffer, options = {}) {
             throw new Error(`Pass 1 returned empty text. finishReason: ${fr1}`);
         }
         if (fr1 === 'MAX_TOKENS') {
-            console.warn(`   ⚠️  Pass 1 hit MAX_TOKENS — some sections may be cut short.`);
+            console.warn(` Pass 1 hit MAX_TOKENS — some sections may be cut short.`);
         }
-        console.log(`   ✅ Pass 1 done. (${Math.round(text1.length / 1024)} KB, finish: ${fr1})`);
+        console.log(` Pass 1 done. (${Math.round(text1.length / 1024)} KB, finish: ${fr1})`);
 
         // Small cooldown between calls to avoid rate-limiting
         await new Promise(r => setTimeout(r, 3000));
 
-        console.log(`📋 Pass 2/2 — Generating: ${SECTIONS_PART_2.join(', ')}`);
+        console.log(`Pass 2/2 — Generating: ${SECTIONS_PART_2.join(', ')}`);
         const resp2             = await callGeminiWithRetry(ai, modelName, contentsP2, geminiConfig);
         const { text: text2, finishReason: fr2 } = extractTextFromResponse(resp2);
 
@@ -370,24 +351,23 @@ export async function summarizePDFwithGemini(jsonBuffer, options = {}) {
             throw new Error(`Pass 2 returned empty text. finishReason: ${fr2}`);
         }
         if (fr2 === 'MAX_TOKENS') {
-            console.warn(`   ⚠️  Pass 2 hit MAX_TOKENS — some sections may be cut short.`);
+            console.warn(` Pass 2 hit MAX_TOKENS — some sections may be cut short.`);
         }
-        console.log(`   ✅ Pass 2 done. (${Math.round(text2.length / 1024)} KB, finish: ${fr2})`);
+        console.log(`Pass 2 done. (${Math.round(text2.length / 1024)} KB, finish: ${fr2})`);
 
-        // ── 5. Merge ──────────────────────────────────────────────
+//merge
         let summaryText = [text1.trim(), text2.trim()].join('\n\n');
 
-        // Guard: ensure we always have a valid string before any .replace() calls downstream
+        // always valid string before replace
         if (typeof summaryText !== 'string' || !summaryText.trim()) {
             throw new Error('Merged summary is empty — both passes returned no usable text.');
         }
 
         if (fr1 === 'MAX_TOKENS' || fr2 === 'MAX_TOKENS') {
-            summaryText += '\n\n> **⚠️ Note:** This summary was truncated due to output token limits. Some sections may be incomplete.\n';
+            summaryText += '\n\n> **Note:** This summary was truncated due to output token limits. Some sections may be incomplete.\n';
         }
 
-        // ── 6. Save ───────────────────────────────────────────────
-        await fs.writeFile(outputFileName, summaryText);
+
 
         const in1  = resp1?.usageMetadata?.promptTokenCount    ?? '?';
         const out1 = resp1?.usageMetadata?.candidatesTokenCount ?? '?';
@@ -396,17 +376,17 @@ export async function summarizePDFwithGemini(jsonBuffer, options = {}) {
         const sizeKB = Math.round(summaryText.length / 1024);
 
         console.log(`\n${SEP}`);
-        console.log(`🎉 SUCCESS → ${outputFileName}  (${sizeKB} KB)`);
-        console.log(`   Input  : ${beforeKB} KB JSON → ${afterKB} KB text sent`);
-        console.log(`   Pass 1 tokens in/out : ${in1} / ${out1}  (finish: ${fr1})`);
-        console.log(`   Pass 2 tokens in/out : ${in2} / ${out2}  (finish: ${fr2})`);
-        console.log(`   Both finish reasons must be STOP ↑`);
+        console.log(`SUCCESS → ${outputFileName}  (${sizeKB} KB)`);
+        console.log(`Input  : ${beforeKB} KB JSON → ${afterKB} KB text sent`);
+        console.log(`Pass 1 tokens in/out : ${in1} / ${out1}  (finish: ${fr1})`);
+        console.log(`Pass 2 tokens in/out : ${in2} / ${out2}  (finish: ${fr2})`);
+        console.log(`Both finish reasons must be STOP ↑`);
         console.log(`${SEP}\n`);
 
-        return summaryText;   // ← always a string from here
+        return summaryText;   
 
     } catch (err) {
-        console.error(`\n❌ FATAL: ${err.message}`);
+        console.error(`FATAL: ${err.message}`);
         throw new Error(`Gemini summary generation failed: ${err.message}`);
     }
 }

@@ -228,7 +228,9 @@ def build_rag_chunks(pages_data: List[Dict], filename: str) -> List[Dict]:
 
 
 def process_pdf_to_chunks(pdf_bytes: bytes, filename: str) -> List[Dict]:
-    """Main processing function - called by FastAPI"""
+    print("Starting Proccess")
+
+    """Main processing function by using FastAPI"""
     raw_pages = extract_raw_pages(pdf_bytes)
     content_pages = [p for p in raw_pages if not is_boilerplate_page(p["raw_text"])]
 

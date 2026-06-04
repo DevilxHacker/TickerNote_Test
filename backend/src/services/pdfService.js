@@ -3,17 +3,15 @@ import puppeteer from "puppeteer";
 import { ChartJSNodeCanvas } from "chartjs-node-canvas";
 import { markdownToHTML } from "../utilities/markdownUtil.js";
 
-/**
- * Convert Markdown text into PDF buffer with charts and full styling.
- */
+
 export async function markdownToPDFBuffer(markdownText) {
   try {
-    // Guard: ensure we always have a valid string
+ 
     if (!markdownText || typeof markdownText !== "string") {
       throw new Error(`markdownToPDFBuffer received invalid input: ${typeof markdownText}`);
     }
 
-    // === 1️⃣ Chart configuration ===
+    // Chart configuration ===
     const chartSections = {
       "Revenue Breakdown (Consolidated, in ₹ Cr)": { type: "bar" },
       "Financial Statement Analysis (Consolidated)": { type: "bar" },
@@ -73,11 +71,11 @@ export async function markdownToPDFBuffer(markdownText) {
       return buffer.toString("base64");
     }
 
-    // === 2️⃣ Logic for each section ===
+    // Logic for each section 
     async function generateSectionCharts(section, headers, rows) {
       if (!headers.length || !rows.length) return [];
 
-      // 🟦 Revenue Breakdown (Consolidated, in ₹ Cr)
+      // Revenue Breakdown (Consolidated, in ₹ Cr)
       if (section.includes("Revenue Breakdown")) {
         const years = headers.slice(1).filter(h => /\d{4}/.test(h));
         const datasets = rows.map(r => ({
@@ -88,7 +86,7 @@ export async function markdownToPDFBuffer(markdownText) {
         return [await generateChartImage("bar", chartData)];
       }
 
-      // 🟩 Financial Statement Analysis (Consolidated / Standalone)
+      // Financial Statement Analysis (Consolidated / Standalone)
       if (section.includes("Financial Statement Analysis")) {
         const years = headers.filter(h => /\d{4}/.test(h) && !h.includes("%"));
         const charts = [];
@@ -108,7 +106,7 @@ export async function markdownToPDFBuffer(markdownText) {
         return charts;
       }
 
-      // 🟨 Shareholding Pattern (Pie)
+      //Shareholding Pattern (Pie)
       if (section.includes("Shareholding Pattern")) {
         const labels = rows.map(r => r[0]);
         const data = rows.map(r => parseFloat((r[1] ?? "").replace("%", "").replace(/,/g, "")) || 0);
@@ -116,7 +114,7 @@ export async function markdownToPDFBuffer(markdownText) {
         return [await generateChartImage("pie", chartData)];
       }
 
-      // 🟧 Capital Allocation, Dividend & Cash Flow
+      // Capital Allocation, Dividend & Cash Flow
       if (section.includes("Capital Allocation")) {
         const years = headers.filter(h => /\d{4}/.test(h));
         const selected = [
@@ -138,12 +136,9 @@ export async function markdownToPDFBuffer(markdownText) {
       return [];
     }
 
-    // === 3️⃣ Safe async replace helper ===
-    // FIX: The old version could insert `undefined` when results.shift() ran out.
-    // New version collects all matches first, resolves them, then does a single
-    // string rebuild — so the output is always a valid string.
+    // async replace helper
     async function replaceAsync(str, regex, asyncFn) {
-      if (typeof str !== "string") return str; // safety guard
+      if (typeof str !== "string") return str; 
 
       // Collect all match positions and replacement promises
       const matchData = [];
@@ -176,7 +171,7 @@ export async function markdownToPDFBuffer(markdownText) {
       return result;
     }
 
-    // === 4️⃣ Inject charts dynamically ===
+    // injecting charts
     for (const section in chartSections) {
       const sectionRegex = new RegExp(
         `(?:^|\\n)(?:##|###)\\s*${section}[\\s\\S]*?(\\|.*?\\|[\\s\\S]*?)(?=(?:\\n##|\\n###|$))`,
@@ -201,36 +196,36 @@ export async function markdownToPDFBuffer(markdownText) {
           return `${match}\n\n${imgTags}\n`;
         } catch (chartErr) {
           // If chart generation fails for any section, log and return original match
-          console.warn(`⚠️  Chart generation skipped for "${section}": ${chartErr.message}`);
+          console.warn(`Chart generation skipped for "${section}": ${chartErr.message}`);
           return match;
         }
       });
 
-      // Guard: only update markdownText if result is a valid non-empty string
+      
       if (typeof result === "string" && result.trim()) {
         markdownText = result;
       } else {
-        console.warn(`⚠️  replaceAsync returned invalid result for section "${section}", keeping original.`);
+        console.warn(`replaceAsync returned invalid result for section "${section}", keeping original.`);
       }
     }
 
-    // Guard before HTML conversion
+    // error handling for html
     if (!markdownText || typeof markdownText !== "string") {
       throw new Error("markdownText became invalid after chart injection.");
     }
 
-    // === 5️⃣ Convert Markdown → HTML ===
+    
     const htmlContent = markdownToHTML(markdownText);
 
     if (!htmlContent || typeof htmlContent !== "string") {
       throw new Error(`markdownToHTML returned invalid output: ${typeof htmlContent}`);
     }
 
-    // === 6️⃣ Load logos ===
+    //loading logo
     const logoBase64   = fs.readFileSync("logo.svg",        "base64");
     const logoFooter   = fs.readFileSync("footer-logo.svg", "base64");
 
-    // === 7️⃣ Full HTML Template ===
+    // html template
     const html = `
 <html>
   <head>
@@ -292,7 +287,7 @@ export async function markdownToPDFBuffer(markdownText) {
   </body>
 </html>`;
 
-    // === 8️⃣ Generate PDF with Puppeteer ===
+    // generating pdf with puppeter
     const browser = await puppeteer.launch({
       args: ["--no-sandbox", "--disable-setuid-sandbox"],
       headless: true,
@@ -316,11 +311,11 @@ export async function markdownToPDFBuffer(markdownText) {
     });
 
     await browser.close();
-    console.log("✅ PDF generated with charts and full layout");
+    console.log("PDF generated with charts and full layout");
     return pdfBuffer;
 
   } catch (err) {
-    console.error("❌ PDF generation Error:", err.message);
+    console.error("PDF generation Error:", err.message);
     throw new Error("PDF generation failed");
   }
 }

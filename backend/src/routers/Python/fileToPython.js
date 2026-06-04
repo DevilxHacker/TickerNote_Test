@@ -7,15 +7,16 @@ export async function filePythonRouter(blob, name) {
   console.log(`Forwarding ${name} to Python...`);
 
   try {
+    console.log("sending file to python")
     const pythonResponse = await axios.post(`${FASTAPI_URL}/upload-pdf`, form);
     const fullJsonlData =
       typeof pythonResponse.data === "string"
         ? pythonResponse.data
         : JSON.stringify(pythonResponse.data);
-    console.log("✅ Python processing complete. JSONL data received.");
+    console.log("Python processing complete. JSONL data received.");
     return Buffer.from(fullJsonlData, "utf-8");
   } catch (error) {
-    console.error("❌ Error forwarding to Python:", error.message);
+    console.error("Error forwarding to Python:", error.message);
     throw new Error(`Failed to process PDF: ${error.message}`);
   }
 }
