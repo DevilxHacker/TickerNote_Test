@@ -1,7 +1,7 @@
-import { PYTHON_API_URL } from "../config/serverConfig";
+import { PYTHON_API_URL } from "../config/serverConfig.js";
 import fetch from "node-fetch";
 
-const PYTHON_API_URL = process.env.PYTHON_SERVICE_URL || "http://localhost:8000";
+const PYTHON_URL = PYTHON_API_URL || "http://localhost:8000";
 
 
 export const callPythonChat = async (payload) => {
