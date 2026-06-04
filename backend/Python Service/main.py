@@ -60,7 +60,7 @@ def hello_world(data: Message):
 
 @app.post("/upload-pdf")
 async def receive_pdf(file: UploadFile = File(...)):
-    print("recived file in python")
+    print(f"recived {file.filename} in python")
     if not file.filename.lower().endswith('.pdf'):
         raise HTTPException(status_code=400, detail="Only PDF files are allowed")
 

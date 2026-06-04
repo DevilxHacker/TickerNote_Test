@@ -228,7 +228,7 @@ def build_rag_chunks(pages_data: List[Dict], filename: str) -> List[Dict]:
 
 
 def process_pdf_to_chunks(pdf_bytes: bytes, filename: str) -> List[Dict]:
-    print("Starting Proccess")
+    print(f"converting pdf to json {filename}")
 
     """Main processing function by using FastAPI"""
     raw_pages = extract_raw_pages(pdf_bytes)

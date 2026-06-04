@@ -170,6 +170,7 @@ def ingest_chunks(chunks: List[Dict], document_id: str) -> int:
         logger.info(
             f"Upserted {result.upserted_count + result.modified_count} chunks."
         )
+        print("ingested chunks in ragService")
     return len(ops)
 
 
