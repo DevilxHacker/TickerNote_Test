@@ -3,8 +3,13 @@ import puppeteer from "puppeteer";
 import { ChartJSNodeCanvas } from "chartjs-node-canvas";
 import { markdownToHTML } from "../utilities/markdownUtil.js";
 
-
+let pdfGenerating = false;
 export async function markdownToPDFBuffer(markdownText) {
+
+    while (pdfGenerating) {
+    await new Promise(resolve => setTimeout(resolve, 1000));
+  }
+pdfGenerating = true;
   try {
  
     if (!markdownText || typeof markdownText !== "string") {
@@ -288,10 +293,16 @@ export async function markdownToPDFBuffer(markdownText) {
 </html>`;
 
     // generating pdf with puppeter
-    const browser = await puppeteer.launch({
-      args: ["--no-sandbox", "--disable-setuid-sandbox"],
-      headless: true,
-    });
+const browser = await puppeteer.launch({
+  headless: 'new',
+  executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || null,
+  args: [
+    '--no-sandbox',
+    '--disable-setuid-sandbox',
+    '--disable-dev-shm-usage',  // ← critical for Render
+    '--disable-gpu',
+  ]
+});
 
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: "domcontentloaded" });
@@ -317,5 +328,8 @@ export async function markdownToPDFBuffer(markdownText) {
   } catch (err) {
     console.error("PDF generation Error:", err.message);
     throw new Error("PDF generation failed");
+  } finally {
+    pdfGenerating = false; // always release even if error
   }
+
 }
