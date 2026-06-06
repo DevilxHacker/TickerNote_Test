@@ -37,15 +37,19 @@ app.use("/python", pythonRoutes);
 app.use("/chat", chatRouter);
 app.get('/find-chrome', (req, res) => {
   try {
-    const result = execSync('find /opt/render/.cache -name "chrome" -type f 2>/dev/null').toString();
+    const result = execSync('find /opt/render -name "chrome" -type f 2>/dev/null').toString();
     res.json({ 
       foundPaths: result.trim().split('\n').filter(Boolean),
       puppeteerSays: puppeteer.executablePath()
     });
   } catch (err) {
-    res.json({ error: err.message, puppeteerSays: puppeteer.executablePath() });
+    res.json({ 
+      error: err.message, 
+      puppeteerSays: puppeteer.executablePath()
+    });
   }
 });
+
 app.get("/", (req, res) => res.send("Backend running"));
 
 app.use(errorHandler);
