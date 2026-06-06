@@ -34,7 +34,14 @@ app.use("/file", fileRouter);
 app.use("/api/users", userRoutes);
 app.use("/python", pythonRoutes);
 app.use("/chat", chatRouter);
-
+app.get('/find-chrome', (req, res) => {
+  try {
+    const result = execSync('find /opt/render/.cache/puppeteer -name "chrome" -type f 2>/dev/null').toString();
+    res.json({ paths: result.trim().split('\n'), puppeteerPath: puppeteer.executablePath() });
+  } catch (err) {
+    res.json({ error: err.message });
+  }
+});
 app.get("/", (req, res) => res.send("Backend running"));
 
 app.use(errorHandler);
