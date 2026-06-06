@@ -55,7 +55,7 @@ if(!alreadyUser){
   password,
    verified: true,
 });
-  
+  return res.status(201).json({ message: "User registered successfully", user });
   const token = user.generateJwtToken();
   res.status(201).json({ token, user });
 } else{

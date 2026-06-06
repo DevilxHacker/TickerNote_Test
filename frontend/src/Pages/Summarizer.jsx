@@ -49,7 +49,7 @@ export default function SummarizerLayout() {
   const [searchQuery, setSearchQuery] = useState("");
   const [dragOver, setDragOver]       = useState(false);
   const [error, setError]             = useState("");
-
+const [connecting, setConnecting]   = useState(true); 
   // ── NEW: chat state ──
   const [chatOpen, setChatOpen]       = useState(false);
 
@@ -73,6 +73,7 @@ export default function SummarizerLayout() {
       setError("Failed to fetch files. Please try again.");
     } finally {
       setLoadingFiles(false);
+      setConnecting(false);
     }
   };
   useEffect(() => { fetchFiles(); }, []);
@@ -415,6 +416,16 @@ export default function SummarizerLayout() {
         isOpen={chatOpen}
         onClose={() => setChatOpen(false)}
       />
+
+{connecting && (
+  <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-5 py-3.5 bg-gray-900 text-white text-sm font-medium rounded-2xl shadow-xl">
+    <div className="flex-shrink-0 w-4 h-4 border-2 border-white rounded-full border-t-transparent animate-spin" />
+    <span>Connecting to backend on Render, please wait...</span>
+  </div>
+)}
+
     </div>
+
+    
   );
 }
