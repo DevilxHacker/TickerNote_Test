@@ -11,7 +11,7 @@ import userRoutes from "../src/routers/userRouter.js";
 import { execSync } from 'child_process';
 connectDB();
 import puppeteer from 'puppeteer';
-
+import fs from 'fs';
 const app = express();
 
 const allowedOrigins = [
@@ -38,14 +38,18 @@ app.use("/chat", chatRouter);
 app.get('/find-chrome', (req, res) => {
   try {
     const result = execSync('find /opt/render/.cache/puppeteer -type f -name "chrome" 2>/dev/null || echo "NOT FOUND"').toString();
-    const exists = require('fs').existsSync(puppeteer.executablePath());
+    const chromePath = puppeteer.executablePath();
+    const exists = fs.existsSync(chromePath);
     res.json({ 
       foundPaths: result.trim().split('\n').filter(Boolean),
-      puppeteerSays: puppeteer.executablePath(),
-      fileExists: exists  // ← this tells us if the file is actually there
+      puppeteerSays: chromePath,
+      fileExists: exists
     });
   } catch (err) {
-    res.json({ error: err.message, puppeteerSays: puppeteer.executablePath() });
+    res.json({ 
+      error: err.message, 
+      puppeteerSays: puppeteer.executablePath() 
+    });
   }
 });
 
