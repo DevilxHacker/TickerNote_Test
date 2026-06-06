@@ -37,9 +37,9 @@ export const getAllFiles = async (userId) => {
 
 export const getFileById = async (id) => await File.findById(id);
 
-export const getFileByName = async (originalName) => {
+export const getFileByName = async (originalName, user) => {
   try {
-    return await File.findOne({ originalName }); 
+    return await File.findOne({ originalName, user: user }); 
   } catch (err) {
     console.error("Error fetching file by name:", err.message);
     throw err;

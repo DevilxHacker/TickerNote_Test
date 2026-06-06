@@ -8,13 +8,14 @@ function Login() {
   const [form, setForm] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-
+const [connecting, setConnecting]   = useState(false); 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
+setConnecting(true)
     try {
       const { data } = await api.post('/api/users/login', {
   email: form.email,
@@ -27,6 +28,7 @@ function Login() {
       setError(err.response?.data?.message || 'Login failed');
     } finally {
       setLoading(false);
+      setConnecting(false);
     }
   };
 
@@ -109,6 +111,12 @@ function Login() {
           </Link>
         </p>
       </div>
+      {connecting && (
+  <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-5 py-3.5 bg-gray-900 text-white text-sm font-medium rounded-2xl shadow-xl">
+    <div className="flex-shrink-0 w-4 h-4 border-2 border-white rounded-full border-t-transparent animate-spin" />
+    <span>Connecting to backend on Render, please wait...</span>
+  </div>
+)}
     </div>
   );
 }

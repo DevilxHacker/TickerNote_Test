@@ -26,7 +26,8 @@ export const uploadFile = async (req, res) => {
     console.log("File received:", req.file.originalname);
 
     // checking duplicate
-    const existingFile = await getFileByName(req.file.originalname);
+    const user= req.user._id;
+    const existingFile = await getFileByName(req.file.originalname,user);
     if (existingFile) {
       console.log("File already exists in DB:", req.file.originalname);
       return res.status(200).json({
@@ -48,7 +49,7 @@ export const uploadFile = async (req, res) => {
     console.log('summary length:', summary?.length);
     console.log('summary preview:', summary?.slice(0, 200));
     const pdfBuffer = await markdownToPDFBuffer(summary);
-    const summaryFilename = `summary-${req.file.originalname}.pdf`;
+    const summaryFilename = `summary-${req.file.originalname}-${req.user.fullName.firstName}.pdf`;
 
     //save to supabase
     const s3length = await uploadBufferToS3(pdfBuffer, summaryFilename);
@@ -56,6 +57,7 @@ export const uploadFile = async (req, res) => {
     console.log("PDF uploaded to Supabase:", s3lengthToKb, "KB");
 
     // 5. Save to MongoDB
+    
     const savedFile = await saveFile({
       user: req.user._id,
       originalName: req.file.originalname,
