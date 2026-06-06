@@ -8,7 +8,7 @@ import chatRouter from "./routers/chatRouter.js";
 import errorHandler from "./middlewares/errorHandler.js";
 import path from "path";
 import userRoutes from "../src/routers/userRouter.js";
-
+import { execSync } from 'child_process';
 connectDB();
 
 const app = express();
