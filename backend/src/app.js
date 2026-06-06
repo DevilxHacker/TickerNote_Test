@@ -37,16 +37,15 @@ app.use("/python", pythonRoutes);
 app.use("/chat", chatRouter);
 app.get('/find-chrome', (req, res) => {
   try {
-    const result = execSync('find /opt/render -name "chrome" -type f 2>/dev/null').toString();
+    const result = execSync('find /opt/render/.cache/puppeteer -type f -name "chrome" 2>/dev/null || echo "NOT FOUND"').toString();
+    const exists = require('fs').existsSync(puppeteer.executablePath());
     res.json({ 
       foundPaths: result.trim().split('\n').filter(Boolean),
-      puppeteerSays: puppeteer.executablePath()
+      puppeteerSays: puppeteer.executablePath(),
+      fileExists: exists  // ← this tells us if the file is actually there
     });
   } catch (err) {
-    res.json({ 
-      error: err.message, 
-      puppeteerSays: puppeteer.executablePath()
-    });
+    res.json({ error: err.message, puppeteerSays: puppeteer.executablePath() });
   }
 });
 
